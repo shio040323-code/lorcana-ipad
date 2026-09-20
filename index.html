@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ロルカナ未取得">
+<title>ロルカナ 未取得カード</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #f5f5f5;
+    color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+                 "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  }
+
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  #header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(10px);
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  #title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  #count {
+    font-size: 14px;
+    color: #666;
+    white-space: nowrap;
+  }
+
+  #search {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 16px;
+    background: white;
+    outline: none;
+  }
+
+  #search:focus {
+    border-color: #888;
+  }
+
+  #status {
+    margin-top: 7px;
+    font-size: 12px;
+    color: #777;
+    min-height: 16px;
+  }
+
+  #gallery {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 5px 20px;
+    align-items: start;
+  }
+
+  .card {
+    min-width: 0;
+    text-align: center;
+  }
+
+  .card-image-wrap {
+    width: 100%;
+    aspect-ratio: 5 / 7;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+  }
+
+  .card-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 12px;
+    background: transparent;
+  }
+
+  .card-code {
+    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1.05;
+    font-weight: 700;
+    word-break: break-all;
+  }
+
+  .card-name {
+    margin-top: 2px;
+    font-size: 11px;
+    line-height: 1.15;
+    min-height: 25px;
+    word-break: break-word;
+  }
+
+  .card-rarity {
+    margin-top: 1px;
+    font-size: 10px;
+    color: #777;
+    line-height: 1.1;
+  }
+
+  #empty {
+    display: none;
+    text-align: center;
+    padding: 50px 20px;
+    color: #777;
+  }
+
+  #loading {
+    text-align: center;
+    padding: 50px 20px;
+    color: #777;
+  }
+
+  #modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.94);
+    padding: 20px;
+  }
+
+  #modal.show {
+    display: flex;
+  }
+
+  #modal-img {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 5px;
+  }
+
+  #close {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    right: 18px;
+    color: white;
+    font-size: 38px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  @media (min-width: 700px) {
+    #gallery {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .card-code {
+      font-size: 16px;
+    }
+
+    .card-name {
+      font-size: 12px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<header id="header">
+  <div class="title-row">
+    <h1 id="title">ロルカナ 未取得カード</h1>
+    <div id="count">読み込み中...</div>
+  </div>
+
+  <input
+    id="search"
+    type="search"
+    placeholder="カード番号・カード名で検索"
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+  >
+
+  <div id="status"></div>
+</header>
+
+<div id="loading">missing.json を読み込んでいます...</div>
+<div id="empty">該当する未取得カードがありません。</div>
+<div id="gallery"></div>
+
+<div id="modal">
+  <span id="close">×</span>
+  <img id="modal-img" alt="">
+</div>
+
+<script>
+"use strict";
+
+let allCards = [];
+let filteredCards = [];
+
+const gallery = document.getElementById("gallery");
+const search = document.getElementById("search");
+const count = document.getElementById("count");
+const status = document.getElementById("status");
+const loading = document.getElementById("loading");
+const empty = document.getElementById("empty");
+const modal = document.getElementById("modal");
+const modalImg = document.getElementById("modal-img");
+const close = document.getElementById("close");
+
+function normalize(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\\s\\-_]/g, "");
+}
+
+function cardSearchText(card) {
+  return normalize([
+    card.code,
+    card.name,
+    card.image,
+    card.rarity,
+    card.version,
+    card.set,
+    card.type
+  ].join(" "));
+}
+
+function getImageData(card) {
+  if (card.imageData && typeof card.imageData === "string") {
+    return card.imageData;
+  }
+
+  // 将来 imageData の名前が変わった場合にも対応
+  if (card.imageBase64 && typeof card.imageBase64 === "string") {
+    return card.imageBase64.startsWith("data:")
+      ? card.imageBase64
+      : "data:image/webp;base64," + card.imageBase64;
+  }
+
+  return "";
+}
+
+function render() {
+  gallery.innerHTML = "";
+
+  const keyword = normalize(search.value);
+
+  filteredCards = keyword
+    ? allCards.filter(card => cardSearchText(card).includes(keyword))
+    : allCards;
+
+  count.textContent = `${filteredCards.length} / ${allCards.length}枚`;
+
+  empty.style.display = filteredCards.length ? "none" : "block";
+
+  const fragment = document.createDocumentFragment();
+
+  for (const card of filteredCards) {
+    const item = document.createElement("div");
+    item.className = "card";
+
+    const wrap = document.createElement("div");
+    wrap.className = "card-image-wrap";
+
+    const imageData = getImageData(card);
+
+    if (imageData) {
+      const img = document.createElement("img");
+      img.className = "card-image";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.src = imageData;
+      img.alt = card.name || card.code || "";
+
+      img.addEventListener("click", () => {
+        modalImg.src = imageData;
+        modalImg.alt = img.alt;
+        modal.classList.add("show");
+      });
+
+      wrap.appendChild(img);
+    } else {
+      const noImage = document.createElement("div");
+      noImage.className = "no-image";
+      noImage.textContent = "画像なし";
+      wrap.appendChild(noImage);
+    }
+
+    item.appendChild(wrap);
+
+    const code = document.createElement("div");
+    code.className = "card-code";
+    code.textContent = card.code || "";
+    item.appendChild(code);
+
+    const name = document.createElement("div");
+    name.className = "card-name";
+    name.textContent = card.name || "";
+    item.appendChild(name);
+
+    if (card.rarity) {
+      const rarity = document.createElement("div");
+      rarity.className = "card-rarity";
+      rarity.textContent = card.rarity;
+      item.appendChild(rarity);
+    }
+
+    fragment.appendChild(item);
+  }
+
+  gallery.appendChild(fragment);
+}
+
+async function loadData() {
+  try {
+    // GitHub PagesではこのHTMLと同じ場所のmissing.jsonを読み込む
+    const response = await fetch("./missing.json?ts=" + Date.now(), {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `missing.json の読み込みに失敗しました (${response.status})`
+      );
+    }
+
+    const data = await response.json();
+
+    if (Array.isArray(data)) {
+      allCards = data;
+    } else if (Array.isArray(data.cards)) {
+      allCards = data.cards;
+    } else {
+      throw new Error("missing.json に cards がありません");
+    }
+
+    allCards = allCards.filter(card => card && typeof card === "object");
+
+    loading.style.display = "none";
+
+    status.textContent =
+      `更新: ${data.updatedAt ? new Date(data.updatedAt).toLocaleString("ja-JP") : "不明"}`;
+
+    render();
+
+  } catch (error) {
+    loading.textContent =
+      "missing.json を読み込めませんでした。";
+
+    status.textContent = error.message;
+
+    console.error(error);
+  }
+}
+
+search.addEventListener("input", render);
+
+close.addEventListener("click", () => {
+  modal.classList.remove("show");
+  modalImg.src = "";
+});
+
+modal.addEventListener("click", event => {
+  if (event.target === modal) {
+    modal.classList.remove("show");
+    modalImg.src = "";
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    modal.classList.remove("show");
+    modalImg.src = "";
+  }
+});
+
+loadData();
+</script>
+
+</body>
+</html>
