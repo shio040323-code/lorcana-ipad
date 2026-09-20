@@ -74,6 +74,18 @@
     white-space: nowrap;
   }
 
+  #setFilter {
+    width: 100%;
+    height: 42px;
+    margin-bottom: 7px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 0 10px;
+    font-size: 16px;
+    background: white;
+    color: #222;
+  }
+
   #search {
     width: 100%;
     height: 42px;
@@ -233,6 +245,10 @@
     <div id="count">読み込み中...</div>
   </div>
 
+  <select id="setFilter" aria-label="カードセット選択">
+    <option value="">すべてのJA</option>
+  </select>
+
   <input
     id="search"
     type="search"
@@ -262,6 +278,7 @@ let filteredCards = [];
 
 const gallery = document.getElementById("gallery");
 const search = document.getElementById("search");
+const setFilter = document.getElementById("setFilter");
 const count = document.getElementById("count");
 const status = document.getElementById("status");
 const loading = document.getElementById("loading");
@@ -304,14 +321,57 @@ function getImageData(card) {
   return "";
 }
 
+function getJASet(code) {
+  const text = String(code ?? "").trim().toUpperCase();
+  const match = text.match(/^JA(\d+)(?:[-_]|$)/);
+  return match ? `JA${Number(match[1])}` : "";
+}
+
+function buildSetFilter() {
+  const values = [...new Set(
+    allCards
+      .map(card => getJASet(card.code))
+      .filter(Boolean)
+  )];
+
+  values.sort((a, b) => {
+    const na = Number(a.slice(2));
+    const nb = Number(b.slice(2));
+    return na - nb;
+  });
+
+  const current = setFilter.value;
+
+  setFilter.innerHTML = '<option value="">すべてのJA</option>';
+
+  for (const value of values) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    setFilter.appendChild(option);
+  }
+
+  if (values.includes(current)) {
+    setFilter.value = current;
+  }
+}
+
 function render() {
   gallery.innerHTML = "";
 
   const keyword = normalize(search.value);
 
-  filteredCards = keyword
-    ? allCards.filter(card => cardSearchText(card).includes(keyword))
-    : allCards;
+  const selectedSet = setFilter.value;
+
+  filteredCards = allCards.filter(card => {
+    const matchesSet =
+      !selectedSet || getJASet(card.code) === selectedSet;
+
+    const matchesSearch =
+      !keyword || cardSearchText(card).includes(keyword);
+
+    return matchesSet && matchesSearch;
+  });
 
   count.textContent = `${filteredCards.length} / ${allCards.length}枚`;
 
@@ -400,6 +460,32 @@ async function loadData() {
 
     allCards = allCards.filter(card => card && typeof card === "object");
 
+    // JA01 → JA02 → JA03 … の順、同じJA内はカード番号順
+    allCards.sort((a, b) => {
+      const aCode = String(a.code ?? "").toUpperCase();
+      const bCode = String(b.code ?? "").toUpperCase();
+
+      const aSet = getJASet(aCode);
+      const bSet = getJASet(bCode);
+
+      const aSetNo = aSet ? Number(aSet.slice(2)) : 999999;
+      const bSetNo = bSet ? Number(bSet.slice(2)) : 999999;
+
+      if (aSetNo !== bSetNo) {
+        return aSetNo - bSetNo;
+      }
+
+      const aMatch = aCode.match(/(\d+)$/);
+      const bMatch = bCode.match(/(\d+)$/);
+
+      const aNo = aMatch ? Number(aMatch[1]) : 999999;
+      const bNo = bMatch ? Number(bMatch[1]) : 999999;
+
+      return aNo - bNo;
+    });
+
+    buildSetFilter();
+
     loading.style.display = "none";
 
     status.textContent =
@@ -418,6 +504,7 @@ async function loadData() {
 }
 
 search.addEventListener("input", render);
+setFilter.addEventListener("change", render);
 
 close.addEventListener("click", () => {
   modal.classList.remove("show");
