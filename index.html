@@ -173,6 +173,29 @@
     line-height: 1.1;
   }
 
+  .card-counts {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .count-n,
+  .count-f {
+    white-space: nowrap;
+  }
+
+  .count-n {
+    color: #555;
+  }
+
+  .count-f {
+    color: #7a4d00;
+  }
+
   #empty {
     display: none;
     text-align: center;
@@ -428,6 +451,24 @@ function render() {
       rarity.textContent = card.rarity;
       item.appendChild(rarity);
     }
+
+    // PC側の印刷データと同じN/F枚数を表示
+    const normal = Number(card.normal ?? 0);
+    const foil = Number(card.foil ?? 0);
+
+    const counts = document.createElement("div");
+    counts.className = "card-counts";
+
+    const normalText = document.createElement("span");
+    normalText.className = "count-n";
+    normalText.textContent = `N：${normal}`;
+
+    const foilText = document.createElement("span");
+    foilText.className = "count-f";
+    foilText.textContent = `F：${foil}`;
+
+    counts.append(normalText, foilText);
+    item.appendChild(counts);
 
     fragment.appendChild(item);
   }
