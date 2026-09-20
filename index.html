@@ -122,12 +122,45 @@
   }
 
   .card-image-wrap {
+    position: relative;
     width: 100%;
     aspect-ratio: 5 / 7;
     background: #eee;
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,.18);
+  }
+
+  .card-image-wrap.purchased {
+    box-shadow: 0 0 0 3px #b91c1c, 0 1px 5px rgba(0,0,0,.25);
+  }
+
+  /* 購入済み：赤いハンコ風スタンプ */
+  .card-image-wrap.purchased::after {
+    content: "購入済";
+    position: absolute;
+    top: 10px; right: 8px; z-index: 2;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
+    border: 3px solid #b91c1c;
+    border-radius: 50%;
+    background: rgba(255,255,255,.08);
+    color: #b91c1c;
+    font-size: 12px; font-weight: 900;
+    letter-spacing: 1px; text-align: center;
+    transform: rotate(-12deg);
+    pointer-events: none; opacity: .9;
+  }
+
+  .card-image-wrap.purchased::before {
+    content: "";
+    position: absolute;
+    top: 14px; right: 12px; z-index: 2;
+    width: 40px; height: 40px;
+    border: 1px solid #b91c1c; border-radius: 50%;
+    transform: rotate(-12deg);
+    pointer-events: none; opacity: .75;
   }
 
   .card-image {
@@ -137,6 +170,26 @@
     object-fit: contain;
     cursor: pointer;
     background: transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .zoom-button {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 5px 8px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .zoom-button:active {
+    background: #eee;
   }
 
   .no-image {
@@ -316,6 +369,43 @@ const modal = document.getElementById("modal");
 const modalImg = document.getElementById("modal-img");
 const close = document.getElementById("close");
 
+// iPad側だけで管理する「購入済み」情報
+const PURCHASED_KEY = "lorcana_ipad_purchased_v1";
+let purchasedCards = loadPurchasedCards();
+
+function loadPurchasedCards() {
+  try {
+    const saved = localStorage.getItem(PURCHASED_KEY);
+    const list = saved ? JSON.parse(saved) : [];
+    return new Set(Array.isArray(list) ? list.map(String) : []);
+  } catch (error) {
+    console.warn("購入情報の読み込みに失敗しました", error);
+    return new Set();
+  }
+}
+
+function savePurchasedCards() {
+  localStorage.setItem(PURCHASED_KEY, JSON.stringify([...purchasedCards]));
+}
+
+function getCardKey(card) {
+  return String(card.code || card.id || card.image || card.name || "");
+}
+
+function togglePurchased(card, wrap) {
+  const key = getCardKey(card);
+  if (!key) return;
+
+  if (purchasedCards.has(key)) {
+    purchasedCards.delete(key);
+  } else {
+    purchasedCards.add(key);
+  }
+
+  savePurchasedCards();
+  wrap.classList.toggle("purchased", purchasedCards.has(key));
+}
+
 function normalize(value) {
   return String(value ?? "")
     .normalize("NFKC")
@@ -417,6 +507,11 @@ function render() {
 
     const imageData = getImageData(card);
 
+    const cardKey = getCardKey(card);
+    if (purchasedCards.has(cardKey)) {
+      wrap.classList.add("purchased");
+    }
+
     if (imageData) {
       const img = document.createElement("img");
       img.className = "card-image";
@@ -424,14 +519,27 @@ function render() {
       img.decoding = "async";
       img.src = imageData;
       img.alt = card.name || card.code || "";
+      img.title = "タッチすると購入済み／未購入を切り替えます";
 
+      // 画像タッチ：購入済み／未購入を切り替え
       img.addEventListener("click", () => {
+        togglePurchased(card, wrap);
+      });
+
+      wrap.appendChild(img);
+
+      // 拡大は専用ボタンに分離
+      const zoomButton = document.createElement("button");
+      zoomButton.type = "button";
+      zoomButton.className = "zoom-button";
+      zoomButton.textContent = "🔍 拡大";
+      zoomButton.addEventListener("click", () => {
         modalImg.src = imageData;
         modalImg.alt = img.alt;
         modal.classList.add("show");
       });
-
-      wrap.appendChild(img);
+      item.appendChild(wrap);
+      item.appendChild(zoomButton);
     } else {
       const noImage = document.createElement("div");
       noImage.className = "no-image";
@@ -439,7 +547,9 @@ function render() {
       wrap.appendChild(noImage);
     }
 
-    item.appendChild(wrap);
+    if (!imageData) {
+      item.appendChild(wrap);
+    }
 
     const code = document.createElement("div");
     code.className = "card-code";
