@@ -196,6 +196,12 @@
     color: #7a4d00;
   }
 
+  .count-f.active {
+    color: red;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
   #empty {
     display: none;
     text-align: center;
@@ -464,7 +470,8 @@ function render() {
     normalText.textContent = `N：${normal}`;
 
     const foilText = document.createElement("span");
-    foilText.className = "count-f";
+    foilText.className =
+      foil >= 1 ? "count-f active" : "count-f";
     foilText.textContent = `F：${foil}`;
 
     counts.append(normalText, foilText);
