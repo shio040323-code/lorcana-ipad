@@ -343,7 +343,7 @@
   <div id="status"></div>
 </header>
 
-<div id="loading">missing.json を読み込んでいます...</div>
+<div id="loading">未取得カードデータを読み込んでいます...</div>
 <div id="empty">該当する未取得カードがありません。</div>
 <div id="gallery"></div>
 
@@ -595,20 +595,76 @@ function render() {
 
 async function loadData() {
   try {
-    // GitHub PagesではこのHTMLと同じ場所のmissing.jsonを読み込む
-    const response = await fetch("./missing.json?ts=" + Date.now(), {
-      cache: "no-store"
-    });
+    /*
+      データ読み込み方式
+      ① まず従来の missing.json を試す
+      ② なければ missing_001.json, missing_002.json, ... を自動で読み込む
+      ③ split JSON は何個に増えても、連番である限りHTMLの変更不要
+    */
 
-    if (!response.ok) {
-      throw new Error(
-        `missing.json の読み込みに失敗しました (${response.status})`
-      );
+    async function fetchJson(fileName) {
+      const response = await fetch("./" + fileName + "?ts=" + Date.now(), {
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return await response.json();
     }
 
-    const data = await response.json();
+    let data = await fetchJson("missing.json");
+    let updatedAt = data?.updatedAt ?? null;
 
-    if (Array.isArray(data)) {
+    if (data === null) {
+      // 分割版を自動読み込み
+      const parts = [];
+
+      for (let partNo = 1; ; partNo++) {
+        const fileName =
+          `missing_${String(partNo).padStart(3, "0")}.json`;
+
+        const partData = await fetchJson(fileName);
+
+        // 連番の次が存在しなければ終了
+        if (partData === null) {
+          break;
+        }
+
+        const cards = Array.isArray(partData)
+          ? partData
+          : Array.isArray(partData.cards)
+            ? partData.cards
+            : null;
+
+        if (!cards) {
+          throw new Error(`${fileName} に cards がありません`);
+        }
+
+        parts.push(...cards);
+
+        if (!updatedAt && partData.updatedAt) {
+          updatedAt = partData.updatedAt;
+        }
+
+        // totalParts が入っている場合は、必要数まで読み込んだら終了
+        if (
+          Number.isFinite(Number(partData.totalParts)) &&
+          partNo >= Number(partData.totalParts)
+        ) {
+          break;
+        }
+      }
+
+      if (parts.length === 0) {
+        throw new Error(
+          "missing.json または missing_001.json 以降のデータが見つかりません"
+        );
+      }
+
+      allCards = parts;
+    } else if (Array.isArray(data)) {
       allCards = data;
     } else if (Array.isArray(data.cards)) {
       allCards = data.cards;
@@ -647,13 +703,13 @@ async function loadData() {
     loading.style.display = "none";
 
     status.textContent =
-      `更新: ${data.updatedAt ? new Date(data.updatedAt).toLocaleString("ja-JP") : "不明"}`;
+      `更新: ${updatedAt ? new Date(updatedAt).toLocaleString("ja-JP") : "不明"}　全${allCards.length}枚`;
 
     render();
 
   } catch (error) {
     loading.textContent =
-      "missing.json を読み込めませんでした。";
+      "未取得カードデータを読み込めませんでした。";
 
     status.textContent = error.message;
 
