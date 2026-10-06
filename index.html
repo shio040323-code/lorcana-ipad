@@ -74,7 +74,8 @@
     white-space: nowrap;
   }
 
-  #setFilter {
+  #setFilter,
+  #inkFilter {
     width: 100%;
     height: 42px;
     margin-bottom: 7px;
@@ -84,6 +85,38 @@
     font-size: 16px;
     background: white;
     color: #222;
+  }
+
+  .ink-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .ink-filter button {
+    flex: 1 1 auto;
+    min-width: 78px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #bbb;
+    border-radius: 9px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .ink-filter button.active {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+  }
+
+  .ink-filter button:active {
+    opacity: .75;
   }
 
   #search {
@@ -331,6 +364,8 @@
     <option value="">すべてのJA</option>
   </select>
 
+  <div id="inkFilter" class="ink-filter" aria-label="インク色選択"></div>
+
   <input
     id="search"
     type="search"
@@ -361,6 +396,7 @@ let filteredCards = [];
 const gallery = document.getElementById("gallery");
 const search = document.getElementById("search");
 const setFilter = document.getElementById("setFilter");
+const inkFilter = document.getElementById("inkFilter");
 const count = document.getElementById("count");
 const status = document.getElementById("status");
 const loading = document.getElementById("loading");
@@ -446,6 +482,104 @@ function getJASet(code) {
   return match ? `JA${Number(match[1])}` : "";
 }
 
+
+function getCardInks(card) {
+  // データの持ち方に幅広く対応
+  const values = [
+    card.ink,
+    card.inks,
+    card.inkColor,
+    card.inkColors,
+    card.color,
+    card.colors
+  ];
+
+  const result = [];
+
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      result.push(...value);
+    } else if (typeof value === "string") {
+      // 「アンバー/アメジスト」「アンバー,アメジスト」
+      // 「アンバー・アメジスト」などにも対応
+      result.push(...value.split(/[\/,、・&＋+]|(?:\s+and\s+)/i));
+    }
+  }
+
+  // 重複除去・空白除去
+  return [...new Set(
+    result
+      .map(v => String(v).trim())
+      .filter(Boolean)
+  )];
+}
+
+function buildInkFilter() {
+  const values = [...new Set(
+    allCards.flatMap(card => getCardInks(card))
+  )];
+
+  const order = [
+    "アンバー",
+    "アメジスト",
+    "エメラルド",
+    "ルビー",
+    "サファイア",
+    "スティール"
+  ];
+
+  values.sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b, "ja");
+  });
+
+  const current = inkFilter.dataset.value || "";
+
+  inkFilter.innerHTML = "";
+
+  // すべて
+  const allButton = document.createElement("button");
+  allButton.type = "button";
+  allButton.textContent = "すべて";
+  allButton.className = current === "" ? "active" : "";
+  allButton.addEventListener("click", () => {
+    inkFilter.dataset.value = "";
+    updateInkButtons();
+    render();
+  });
+  inkFilter.appendChild(allButton);
+
+  // インク色ボタン
+  for (const value of values) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = value;
+    button.dataset.ink = value;
+    button.className = current === value ? "active" : "";
+
+    button.addEventListener("click", () => {
+      inkFilter.dataset.value = value;
+      updateInkButtons();
+      render();
+    });
+
+    inkFilter.appendChild(button);
+  }
+
+  function updateInkButtons() {
+    const selected = inkFilter.dataset.value || "";
+    inkFilter.querySelectorAll("button").forEach(button => {
+      const value = button.dataset.ink || "";
+      button.classList.toggle("active", value === selected);
+    });
+  }
+}
+
 function buildSetFilter() {
   const values = [...new Set(
     allCards
@@ -481,6 +615,7 @@ function render() {
   const keyword = normalize(search.value);
 
   const selectedSet = setFilter.value;
+  const selectedInk = inkFilter.dataset.value || "";
 
   filteredCards = allCards.filter(card => {
     const matchesSet =
@@ -489,7 +624,12 @@ function render() {
     const matchesSearch =
       !keyword || cardSearchText(card).includes(keyword);
 
-    return matchesSet && matchesSearch;
+    // ダブルインクは「どちらか一方」を選んでも表示
+    const cardInks = getCardInks(card);
+    const matchesInk =
+      !selectedInk || cardInks.includes(selectedInk);
+
+    return matchesSet && matchesSearch && matchesInk;
   });
 
   count.textContent = `${filteredCards.length} / ${allCards.length}枚`;
@@ -699,6 +839,7 @@ async function loadData() {
     });
 
     buildSetFilter();
+    buildInkFilter();
 
     loading.style.display = "none";
 
