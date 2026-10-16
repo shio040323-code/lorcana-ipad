@@ -20,8 +20,8 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 #cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
 .card{background:linear-gradient(145deg,#202943,#11182a);border:1px solid #46516f;border-radius:11px;padding:9px;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0005;min-width:0;color:#f6f7ff}.card.owned{background:linear-gradient(145deg,#3a321e,#171b2a);border-color:#d5b24d;box-shadow:inset 0 0 0 1px #f7d87933,0 4px 12px #0005}.card.not-owned{background:linear-gradient(145deg,#252c41,#111725);color:#f5f7ff}
 .code{font-weight:850;font-size:14px;letter-spacing:.02em;color:#fff} .name{font-size:12px;min-height:28px;margin:5px 0;color:#e3e9fb}
-.counts{display:flex;gap:7px;align-items:center;justify-content:center;margin-top:7px;font-weight:800}.counts label{font-size:12px;color:#d9e4ff}.counts input{width:58px;flex:0 0 58px;text-align:center;padding:5px;background:#f6f8ff;color:#11182a;border-color:#b6c3e0}
-.count-f{color:#ffcf63!important} .save{width:100%;margin-top:6px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
+.counts{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;font-weight:800}.count-chip{display:flex;gap:5px;align-items:center;font-size:13px;color:#d9e4ff}.count-chip b{font-size:18px;color:#fff}.count-chip .fnum{color:#ff7777}.edit-count{width:100%;margin-top:8px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
+#inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px}.input-actions button{flex:1;min-height:46px}.hint{font-size:11px;color:#aebbd8;margin-top:9px}
 @media(min-width:700px){#cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}}
 </style>
 </head>
@@ -40,6 +40,17 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 <div id="status">ログインするとPC・iPad間で枚数を共有できます。</div>
 </header>
 <div id="cards"></div>
+<div id="inputScreen" role="dialog" aria-modal="true" aria-label="枚数入力">
+ <div class="input-panel">
+  <div class="input-head"><h2>枚数入力</h2><button id="closeInput">閉じる</button></div>
+  <div class="input-name" id="inputCardName"></div>
+  <div class="counter"><label>N 通常</label><button class="minus" id="nMinus">−</button><div class="count-value active" id="nValue">0</div><button class="plus" id="nPlus">＋</button></div>
+  <div class="counter"><label class="f">F フォイル</label><button class="minus" id="fMinus">−</button><div class="count-value" id="fValue">0</div><button class="plus" id="fPlus">＋</button></div>
+  <div class="hint">数字を選んでテンキー入力、または＋・−で変更できます。変更内容は自動保存されます。</div>
+  <div class="keypad" id="keypad"><button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="utility" data-key="clear">クリア</button><button data-key="0">0</button><button class="utility" data-key="back">⌫</button></div>
+  <div class="input-actions"><button id="inputDone" class="primary">入力完了</button></div>
+ </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
@@ -112,29 +123,44 @@ function render() {
   if(rarityMap[c.rarity]) { rarityMark.className="rarity "+rarityMap[c.rarity][1]; rarityMark.textContent=rarityMap[c.rarity][0]; card.appendChild(rarityMark); }
   const nm=document.createElement("div");nm.className="name";nm.textContent=(c.name||"")+(c.version?" / "+c.version:"");card.appendChild(nm);
   const countsRow=document.createElement("div");countsRow.className="counts";
-  const ln=document.createElement("label");ln.textContent="N";
-  const ni=document.createElement("input");ni.type="number";ni.min="0";ni.max="999";ni.step="1";ni.value=v.n;ni.setAttribute("aria-label",code+" N枚数");
-  const lf=document.createElement("label");lf.textContent="F";lf.className="count-f";
-  const fi=document.createElement("input");fi.type="number";fi.min="0";fi.max="999";fi.step="1";fi.value=v.f;fi.setAttribute("aria-label",code+" F枚数");
-  countsRow.append(ln,ni,lf,fi);card.appendChild(countsRow);
-  const save=document.createElement("button");save.className="save";save.textContent="枚数を保存";save.disabled=!user;
-  save.addEventListener("click",async()=>{
-    if(!user) return;
-    const n=Math.max(0,Math.min(999,parseInt(ni.value,10)||0));
-    const f=Math.max(0,Math.min(999,parseInt(fi.value,10)||0));
-    save.disabled=true;$("status").textContent=code+" を保存中...";
-    const row={user_id:user.id,card_code:code,normal_count:n,foil_count:f,updated_at:new Date().toISOString()};
-    const {error}=await sb.from("lorcana_collection").upsert(row,{onConflict:"user_id,card_code"});
-    save.disabled=false;
-    if(error) {$("status").textContent="保存失敗："+error.message;return;}
-    counts.set(code,{n,f});card.className="card "+(n>=1?"owned":"not-owned");
-    $("status").textContent=code+" を保存しました。ほかの端末では再読み込みすると反映されます。";
-    if($("ownership").value!=="all") render();
-  });
-  card.appendChild(save);frag.appendChild(card);
+  const nChip=document.createElement("div");nChip.className="count-chip";nChip.innerHTML='<span>N</span><b></b>';nChip.querySelector('b').textContent=v.n;
+  const fChip=document.createElement("div");fChip.className="count-chip";fChip.innerHTML='<span class="count-f">F</span><b class="fnum"></b>';fChip.querySelector('b').textContent=v.f;
+  countsRow.append(nChip,fChip);card.appendChild(countsRow);
+  const edit=document.createElement("button");edit.className="edit-count";edit.textContent="枚数を入力";edit.disabled=!user;
+  edit.addEventListener("click",()=>openInput(c));
+  card.appendChild(edit);frag.appendChild(card);
  }
  host.appendChild(frag);
 }
+let editingCard=null, editN=0, editF=0, activeCount="n", saveTimer=null, saveSequence=0;
+function updateInputUI(){
+ $("nValue").textContent=editN;$("fValue").textContent=editF;
+ $("nValue").classList.toggle("active",activeCount==="n");$("fValue").classList.toggle("active",activeCount==="f");
+}
+function openInput(c){
+ if(!user){$("status").textContent="枚数を入力するにはログインしてください。";return;}
+ editingCard=c;const v=counts.get(c.code)||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
+ $("inputCardName").textContent=c.code+"　"+c.name+(c.version?" / "+c.version:"");updateInputUI();$("inputScreen").style.display="block";
+}
+function closeInput(){$("inputScreen").style.display="none";editingCard=null;}
+async function saveEditedCounts(){
+ if(!user||!editingCard)return;
+ const code=editingCard.code,n=editN,f=editF,seq=++saveSequence;
+ counts.set(code,{n,f});render();
+ $("status").textContent=code+" を自動保存中…";
+ const row={user_id:user.id,card_code:code,normal_count:n,foil_count:f,updated_at:new Date().toISOString()};
+ const {error}=await sb.from("lorcana_collection").upsert(row,{onConflict:"user_id,card_code"});
+ if(seq!==saveSequence)return;
+ if(error){$("status").textContent="自動保存失敗："+error.message;return;}
+ $("status").textContent=code+" を自動保存しました。";
+}
+function changedCount(){updateInputUI();if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(saveEditedCounts,350);}
+function changeCount(which,delta){if(which==="n")editN=Math.max(0,Math.min(999,editN+delta));else editF=Math.max(0,Math.min(999,editF+delta));activeCount=which;changedCount();}
+$("nValue").addEventListener("click",()=>{activeCount="n";updateInputUI();});$("fValue").addEventListener("click",()=>{activeCount="f";updateInputUI();});
+$("nMinus").addEventListener("click",()=>changeCount("n",-1));$("nPlus").addEventListener("click",()=>changeCount("n",1));$("fMinus").addEventListener("click",()=>changeCount("f",-1));$("fPlus").addEventListener("click",()=>changeCount("f",1));
+$("keypad").addEventListener("click",e=>{const b=e.target.closest("button[data-key]");if(!b)return;let val=activeCount==="n"?String(editN):String(editF),key=b.dataset.key;if(key==="clear")val="0";else if(key==="back")val=val.length>1?val.slice(0,-1):"0";else val=(val==="0"?"":val)+key;val=String(Math.max(0,Math.min(999,parseInt(val,10)||0)));if(activeCount==="n")editN=Number(val);else editF=Number(val);changedCount();});
+$("closeInput").addEventListener("click",closeInput);$("inputDone").addEventListener("click",()=>{if(saveTimer){clearTimeout(saveTimer);saveTimer=null;saveEditedCounts();}closeInput();});
+
 function authUI() {
  $("login").style.display=user?"none":"";
  $("logout").style.display=user?"":"none";
@@ -148,11 +174,11 @@ $("login").addEventListener("click",async()=>{
  $("status").textContent="ログイン中...";
  const {data,error}=await sb.auth.signInWithPassword({email,password});
  if(error) {$("status").textContent="ログイン失敗："+error.message;return;}
- user=data.user;authUI();
+ user=data.user;authUI();render();
  try {await loadCounts();$("status").textContent="ログイン・共有データ読込完了";}
  catch(e) {$("status").textContent="データ読込失敗："+e.message;}
 });
-$("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();$("status").textContent="ログアウトしました。";});
+$("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
 $("search").addEventListener("input",render);$("set").addEventListener("change",render);$("ownership").addEventListener("change",render);
