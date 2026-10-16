@@ -21,7 +21,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 .card{background:linear-gradient(145deg,#202943,#11182a);border:1px solid #46516f;border-radius:11px;padding:9px;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0005;min-width:0;color:#f6f7ff}.card.owned{background:linear-gradient(145deg,#3a321e,#171b2a);border-color:#d5b24d;box-shadow:inset 0 0 0 1px #f7d87933,0 4px 12px #0005}.card.not-owned{background:linear-gradient(145deg,#252c41,#111725);color:#f5f7ff}
 .code{font-weight:850;font-size:14px;letter-spacing:.02em;color:#fff} .name{font-size:12px;min-height:28px;margin:5px 0;color:#e3e9fb}
 .counts{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;font-weight:800}.count-chip{display:flex;gap:5px;align-items:center;font-size:13px;color:#d9e4ff}.count-chip b{font-size:18px;color:#fff}.count-chip .fnum{color:#ff7777}.edit-count{width:100%;margin-top:8px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
-#inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px}.input-actions button{flex:1;min-height:46px}.hint{font-size:11px;color:#aebbd8;margin-top:9px}
+#inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.input-actions button{flex:1;min-height:46px}.input-actions .nav-button{background:#303a54;color:#f5f7ff;border-color:#697796}.hint{font-size:11px;color:#aebbd8;margin-top:9px}.keyboard-hint{font-size:12px;color:#b9c8e8;margin-top:8px}.count-value{user-select:none}
 @media(min-width:700px){#cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}}
 </style>
 </head>
@@ -48,7 +48,8 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
   <div class="counter"><label class="f">F フォイル</label><button class="minus" id="fMinus">−</button><div class="count-value" id="fValue">0</div><button class="plus" id="fPlus">＋</button></div>
   <div class="hint">数字を選んでテンキー入力、または＋・−で変更できます。変更内容は自動保存されます。</div>
   <div class="keypad" id="keypad"><button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="utility" data-key="clear">クリア</button><button data-key="0">0</button><button class="utility" data-key="back">⌫</button></div>
-  <div class="input-actions"><button id="inputDone" class="primary">入力完了</button></div>
+  <div class="keyboard-hint">PC：数字キーで入力／Backspaceで1桁削除／←→ボタンで前後のカードへ</div>
+  <div class="input-actions"><button id="prevCard" class="nav-button">← 前のカード</button><button id="inputDone" class="primary">入力完了</button><button id="nextCard" class="nav-button">次のカード →</button></div>
  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -57,7 +58,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 const SUPABASE_URL = "https://znmsbvbtcbtgzgtljxzc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgoK6";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-let user = null, cards = [], counts = new Map();
+let user = null, cards = [], counts = new Map(), visibleCards = [];
 const HIGH_RARITIES = new Set(["エピック", "エンチャンテッド", "アイコニック"]);
 const highMode = new URLSearchParams(location.search).get("high") === "1";
 const $ = id => document.getElementById(id);
@@ -105,6 +106,7 @@ function render() {
   return (highMode ? isHigh : !isHigh) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
    (highMode || own==="all"||(own==="missing"&&v.n<1)||(own==="owned"&&v.n>=1));
  });
+ visibleCards=filtered;
  $("total").textContent=filtered.length+" / "+cards.length+"枚";
  const frag=document.createDocumentFragment();
  for(const c of filtered) {
@@ -140,9 +142,26 @@ function updateInputUI(){
 function openInput(c){
  editingCard=c;
  if(!user){$("status").textContent="入力画面は開けます。PC・iPad共有の自動保存にはログインが必要です。";}const v=counts.get(c.code)||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
- $("inputCardName").textContent=c.code+"　"+c.name+(c.version?" / "+c.version:"");updateInputUI();$("inputScreen").style.display="block";
+ $("inputCardName").textContent=c.code+"　"+c.name+(c.version?" / "+c.version:"");updateInputUI();$("inputScreen").style.display="block";document.body.style.overflow="hidden";updateNavButtons();
 }
-function closeInput(){$("inputScreen").style.display="none";editingCard=null;}
+function closeInput(){
+ if(saveTimer){clearTimeout(saveTimer);saveTimer=null;saveEditedCounts();}
+ $("inputScreen").style.display="none";document.body.style.overflow="";editingCard=null;
+}
+function updateNavButtons(){
+ const i=editingCard?visibleCards.findIndex(c=>c.code===editingCard.code):-1;
+ $("prevCard").disabled=i<=0;
+ $("nextCard").disabled=i<0||i>=visibleCards.length-1;
+ $("prevCard").style.opacity=$("prevCard").disabled?".4":"1";
+ $("nextCard").style.opacity=$("nextCard").disabled?".4":"1";
+}
+async function moveCard(delta){
+ if(!editingCard)return;
+ const i=visibleCards.findIndex(c=>c.code===editingCard.code), next=visibleCards[i+delta];
+ if(!next)return;
+ if(saveTimer){clearTimeout(saveTimer);saveTimer=null;await saveEditedCounts();}
+ openInput(next);
+}
 async function saveEditedCounts(){
  if(!user||!editingCard)return;
  const code=editingCard.code,n=editN,f=editF,seq=++saveSequence;
@@ -159,7 +178,38 @@ function changeCount(which,delta){if(which==="n")editN=Math.max(0,Math.min(999,e
 $("nValue").addEventListener("click",()=>{activeCount="n";updateInputUI();});$("fValue").addEventListener("click",()=>{activeCount="f";updateInputUI();});
 $("nMinus").addEventListener("click",()=>changeCount("n",-1));$("nPlus").addEventListener("click",()=>changeCount("n",1));$("fMinus").addEventListener("click",()=>changeCount("f",-1));$("fPlus").addEventListener("click",()=>changeCount("f",1));
 $("keypad").addEventListener("click",e=>{const b=e.target.closest("button[data-key]");if(!b)return;let val=activeCount==="n"?String(editN):String(editF),key=b.dataset.key;if(key==="clear")val="0";else if(key==="back")val=val.length>1?val.slice(0,-1):"0";else val=(val==="0"?"":val)+key;val=String(Math.max(0,Math.min(999,parseInt(val,10)||0)));if(activeCount==="n")editN=Number(val);else editF=Number(val);changedCount();});
-$("closeInput").addEventListener("click",closeInput);$("inputDone").addEventListener("click",()=>{if(saveTimer){clearTimeout(saveTimer);saveTimer=null;saveEditedCounts();}closeInput();});
+$("closeInput").addEventListener("click",closeInput);
+$("prevCard").addEventListener("click",()=>moveCard(-1));
+$("nextCard").addEventListener("click",()=>moveCard(1));
+$("inputDone").addEventListener("click",()=>{if(saveTimer){clearTimeout(saveTimer);saveTimer=null;saveEditedCounts();}closeInput();});
+document.addEventListener("keydown",e=>{
+ if($("inputScreen").style.display!=="block"||!editingCard)return;
+ if(e.ctrlKey||e.altKey||e.metaKey)return;
+ if(/^[0-9]$/.test(e.key)){
+  e.preventDefault();
+  let val=activeCount==="n"?String(editN):String(editF);
+  val=(val==="0"?"":val)+e.key;
+  val=String(Math.max(0,Math.min(999,parseInt(val,10)||0)));
+  if(activeCount==="n")editN=Number(val);else editF=Number(val);
+  changedCount();
+ }else if(e.key==="Backspace"){
+  e.preventDefault();
+  let val=activeCount==="n"?String(editN):String(editF);
+  val=val.length>1?val.slice(0,-1):"0";
+  if(activeCount==="n")editN=Number(val);else editF=Number(val);
+  changedCount();
+ }else if(e.key==="Delete"){
+  e.preventDefault();
+  if(activeCount==="n")editN=0;else editF=0;
+  changedCount();
+ }else if(e.key==="ArrowLeft"){
+  e.preventDefault();moveCard(-1);
+ }else if(e.key==="ArrowRight"){
+  e.preventDefault();moveCard(1);
+ }else if(e.key==="Tab"){
+  activeCount=activeCount==="n"?"f":"n";updateInputUI();
+ }
+});
 
 function authUI() {
  $("login").style.display=user?"none":"";
