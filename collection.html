@@ -17,8 +17,6 @@ button{background:#fff;cursor:pointer} .primary{background:#123b70;color:#fff;bo
 .card{background:#fff;border-radius:9px;padding:7px;box-shadow:0 1px 3px #0002;min-width:0}
 .card.owned{background:#fff8d9} .card.not-owned{background:#30343b;color:#fff}
 .code{font-weight:800;font-size:14px} .name{font-size:12px;min-height:28px;margin:3px 0}
-img{width:100%;aspect-ratio:5/7;object-fit:contain;display:block;background:#eee;border-radius:5px}
-.not-owned img{filter:brightness(.5) saturate(.7)}
 .counts{display:flex;gap:7px;align-items:center;justify-content:center;margin-top:7px;font-weight:700}
 .counts label{font-size:12px} .counts input{width:58px;flex:0 0 58px;text-align:center;padding:5px}
 .count-f{color:#9b6200} .not-owned .count-f{color:#ffd36d}
@@ -49,30 +47,30 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgo6K
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let user = null, cards = [], counts = new Map();
 const $ = id => document.getElementById(id);
-function norm(v) { return String(v ?? "").normalize("NFKC").toLowerCase().replace(/[\\s\\-_]/g,""); }
-function ja(code) { const m=String(code||"").toUpperCase().match(/^JA(\\d+)(?:[-_]|$)/); return m ? "JA"+Number(m[1]) : ""; }
-function imgData(c) { if (c.imageData) return c.imageData; if(c.imageBase64) return c.imageBase64.startsWith("data:")?c.imageBase64:"data:image/webp;base64,"+c.imageBase64; return ""; }
+function norm(v) { return String(v ?? "").normalize("NFKC").toLowerCase().replace(/[\s\-_]/g,""); }
+function ja(code) { const m=String(code||"").toUpperCase().match(/^JA(\d+)(?:[-_]|$)/); return m ? "JA"+Number(m[1]) : ""; }
 async function fetchJson(name) {
  const r=await fetch("./"+name+"?ts="+Date.now(),{cache:"no-store"});
  return r.ok ? await r.json() : null;
 }
 async function loadCards() {
- let d=await fetchJson("missing.json"), parts=[];
- if(d===null) {
-   for(let n=1;;n++) {
-     const part=await fetchJson("missing_"+String(n).padStart(3,"0")+".json");
-     if(part===null) break;
-     const arr=Array.isArray(part)?part:part.cards;
-     if(!Array.isArray(arr)) throw new Error("missing_"+String(n).padStart(3,"0")+".json に cards がありません");
-     parts.push(...arr);
-     if(part.totalParts && n>=Number(part.totalParts)) break;
-   }
-   cards=parts;
- } else cards=Array.isArray(d)?d:(d.cards||[]);
- cards=cards.filter(c=>c&&typeof c==="object");
- cards.sort((a,b)=>String(a.code||"").localeCompare(String(b.code||""), "ja", {numeric:true}));
+ const d = await fetchJson("cardMaster.json");
+ if (d === null) {
+   throw new Error("cardMaster.json が見つかりません。collection.html と同じ場所にアップロードしてください。");
+ }
+ const source = Array.isArray(d) ? d : (Array.isArray(d.cards) ? d.cards : []);
+ if (!source.length) throw new Error("cardMaster.json にカードデータがありません。");
+ // カードマスタのカード番号・カード名をそのまま利用（画像は読み込みません）
+ cards = source.filter(c => c && c.code).map(c => ({
+   code: String(c.code).trim(),
+   name: String(c.name || ""),
+   version: String(c.version || "")
+ }));
+ cards.sort((a,b)=>String(a.code).localeCompare(String(b.code), "ja", {numeric:true}));
  const sets=[...new Set(cards.map(c=>ja(c.code)).filter(Boolean))].sort((a,b)=>Number(a.slice(2))-Number(b.slice(2)));
- for(const s of sets) { const o=document.createElement("option");o.value=s;o.textContent=s;$("set").appendChild(o); }
+ const select=$("set");
+ select.querySelectorAll("option:not(:first-child)").forEach(o=>o.remove());
+ for(const s of sets) { const o=document.createElement("option");o.value=s;o.textContent=s;select.appendChild(o); }
  render();
 }
 async function loadCounts() {
@@ -95,8 +93,6 @@ function render() {
  for(const c of filtered) {
   const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const card=document.createElement("article");card.className="card "+(v.n>=1?"owned":"not-owned");
-  const image=imgData(c);
-  if(image) {const im=document.createElement("img");im.loading="lazy";im.decoding="async";im.src=image;im.alt=c.name||code;card.appendChild(im);}
   const cd=document.createElement("div");cd.className="code";cd.textContent=code;card.appendChild(cd);
   const nm=document.createElement("div");nm.className="name";nm.textContent=c.name||"";card.appendChild(nm);
   const countsRow=document.createElement("div");countsRow.className="counts";
