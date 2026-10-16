@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#081a36">
+<title>ロルカナ コレクション表</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#f5f6f8;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Meiryo,sans-serif}
+header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;padding:10px;z-index:5}
+h1{font-size:20px;margin:0 0 8px} .row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+input,button,select{font-size:15px;padding:9px;border:1px solid #bbb;border-radius:8px} input{min-width:0;flex:1}
+button{background:#fff;cursor:pointer} .primary{background:#123b70;color:#fff;border:0;font-weight:700}
+#status{font-size:12px;color:#666;margin-top:6px;min-height:16px}
+#filters{display:flex;gap:6px} #search{width:100%;margin-top:6px}
+#cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
+.card{background:#fff;border-radius:9px;padding:7px;box-shadow:0 1px 3px #0002;min-width:0}
+.card.owned{background:#fff8d9} .card.not-owned{background:#30343b;color:#fff}
+.code{font-weight:800;font-size:14px} .name{font-size:12px;min-height:28px;margin:3px 0}
+img{width:100%;aspect-ratio:5/7;object-fit:contain;display:block;background:#eee;border-radius:5px}
+.not-owned img{filter:brightness(.5) saturate(.7)}
+.counts{display:flex;gap:7px;align-items:center;justify-content:center;margin-top:7px;font-weight:700}
+.counts label{font-size:12px} .counts input{width:58px;flex:0 0 58px;text-align:center;padding:5px}
+.count-f{color:#9b6200} .not-owned .count-f{color:#ffd36d}
+.save{width:100%;margin-top:6px;background:#e8eef8;border-color:#9aaecb;font-weight:700}
+@media(min-width:700px){#cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}}
+</style>
+</head>
+<body>
+<header>
+<h1>ロルカナ コレクション表</h1>
+<div class="row"><button id="back">← 未取得カードへ戻る</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
+<div class="row">
+<input id="email" type="email" placeholder="Supabase登録メール" autocomplete="username">
+<input id="password" type="password" placeholder="パスワード" autocomplete="current-password">
+<button class="primary" id="login">ログイン</button>
+<button id="logout" style="display:none">ログアウト</button>
+</div>
+<div class="row"><select id="set"><option value="">すべてのJA</option></select><select id="ownership"><option value="all">すべて</option><option value="missing">未取得（N=0）</option><option value="owned">取得済み（N≥1）</option></select></div>
+<input id="search" type="search" placeholder="カード番号・カード名で検索">
+<div id="status">ログインするとPC・iPad間で枚数を共有できます。</div>
+</header>
+<div id="cards"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+const SUPABASE_URL = "https://znmsbvbtcbtgzgtljxzc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgo6K";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let user = null, cards = [], counts = new Map();
+const $ = id => document.getElementById(id);
+function norm(v) { return String(v ?? "").normalize("NFKC").toLowerCase().replace(/[\\s\\-_]/g,""); }
+function ja(code) { const m=String(code||"").toUpperCase().match(/^JA(\\d+)(?:[-_]|$)/); return m ? "JA"+Number(m[1]) : ""; }
+function imgData(c) { if (c.imageData) return c.imageData; if(c.imageBase64) return c.imageBase64.startsWith("data:")?c.imageBase64:"data:image/webp;base64,"+c.imageBase64; return ""; }
+async function fetchJson(name) {
+ const r=await fetch("./"+name+"?ts="+Date.now(),{cache:"no-store"});
+ return r.ok ? await r.json() : null;
+}
+async function loadCards() {
+ let d=await fetchJson("missing.json"), parts=[];
+ if(d===null) {
+   for(let n=1;;n++) {
+     const part=await fetchJson("missing_"+String(n).padStart(3,"0")+".json");
+     if(part===null) break;
+     const arr=Array.isArray(part)?part:part.cards;
+     if(!Array.isArray(arr)) throw new Error("missing_"+String(n).padStart(3,"0")+".json に cards がありません");
+     parts.push(...arr);
+     if(part.totalParts && n>=Number(part.totalParts)) break;
+   }
+   cards=parts;
+ } else cards=Array.isArray(d)?d:(d.cards||[]);
+ cards=cards.filter(c=>c&&typeof c==="object");
+ cards.sort((a,b)=>String(a.code||"").localeCompare(String(b.code||""), "ja", {numeric:true}));
+ const sets=[...new Set(cards.map(c=>ja(c.code)).filter(Boolean))].sort((a,b)=>Number(a.slice(2))-Number(b.slice(2)));
+ for(const s of sets) { const o=document.createElement("option");o.value=s;o.textContent=s;$("set").appendChild(o); }
+ render();
+}
+async function loadCounts() {
+ if(!user) return;
+ const {data,error}=await sb.from("lorcana_collection").select("card_code,normal_count,foil_count").eq("user_id",user.id);
+ if(error) throw error;
+ counts=new Map((data||[]).map(r=>[String(r.card_code),{n:Number(r.normal_count||0),f:Number(r.foil_count||0)}]));
+ render();
+}
+function render() {
+ const host=$("cards");host.innerHTML="";
+ const kw=norm($("search").value), s=$("set").value, own=$("ownership").value;
+ const filtered=cards.filter(c=>{
+  const code=String(c.code||""), v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  return (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")).includes(kw)) &&
+   (own==="all"||(own==="missing"&&v.n<1)||(own==="owned"&&v.n>=1));
+ });
+ $("total").textContent=filtered.length+" / "+cards.length+"枚";
+ const frag=document.createDocumentFragment();
+ for(const c of filtered) {
+  const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const card=document.createElement("article");card.className="card "+(v.n>=1?"owned":"not-owned");
+  const image=imgData(c);
+  if(image) {const im=document.createElement("img");im.loading="lazy";im.decoding="async";im.src=image;im.alt=c.name||code;card.appendChild(im);}
+  const cd=document.createElement("div");cd.className="code";cd.textContent=code;card.appendChild(cd);
+  const nm=document.createElement("div");nm.className="name";nm.textContent=c.name||"";card.appendChild(nm);
+  const countsRow=document.createElement("div");countsRow.className="counts";
+  const ln=document.createElement("label");ln.textContent="N";
+  const ni=document.createElement("input");ni.type="number";ni.min="0";ni.max="999";ni.step="1";ni.value=v.n;ni.setAttribute("aria-label",code+" N枚数");
+  const lf=document.createElement("label");lf.textContent="F";lf.className="count-f";
+  const fi=document.createElement("input");fi.type="number";fi.min="0";fi.max="999";fi.step="1";fi.value=v.f;fi.setAttribute("aria-label",code+" F枚数");
+  countsRow.append(ln,ni,lf,fi);card.appendChild(countsRow);
+  const save=document.createElement("button");save.className="save";save.textContent="枚数を保存";save.disabled=!user;
+  save.addEventListener("click",async()=>{
+    if(!user) return;
+    const n=Math.max(0,Math.min(999,parseInt(ni.value,10)||0));
+    const f=Math.max(0,Math.min(999,parseInt(fi.value,10)||0));
+    save.disabled=true;$("status").textContent=code+" を保存中...";
+    const row={user_id:user.id,card_code:code,normal_count:n,foil_count:f,updated_at:new Date().toISOString()};
+    const {error}=await sb.from("lorcana_collection").upsert(row,{onConflict:"user_id,card_code"});
+    save.disabled=false;
+    if(error) {$("status").textContent="保存失敗："+error.message;return;}
+    counts.set(code,{n,f});card.className="card "+(n>=1?"owned":"not-owned");
+    $("status").textContent=code+" を保存しました。ほかの端末では再読み込みすると反映されます。";
+    if($("ownership").value!=="all") render();
+  });
+  card.appendChild(save);frag.appendChild(card);
+ }
+ host.appendChild(frag);
+}
+function authUI() {
+ $("login").style.display=user?"none":"";
+ $("logout").style.display=user?"":"none";
+ $("email").style.display=user?"none":"";
+ $("password").style.display=user?"none":"";
+ if(user) $("status").textContent="ログイン中："+(user.email||"")+"（PC・iPad共通）";
+}
+$("login").addEventListener("click",async()=>{
+ const email=$("email").value.trim(),password=$("password").value;
+ if(!email||!password) {$("status").textContent="メールアドレスとパスワードを入力してください。";return;}
+ $("status").textContent="ログイン中...";
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error) {$("status").textContent="ログイン失敗："+error.message;return;}
+ user=data.user;authUI();
+ try {await loadCounts();$("status").textContent="ログイン・共有データ読込完了";}
+ catch(e) {$("status").textContent="データ読込失敗："+e.message;}
+});
+$("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();$("status").textContent="ログアウトしました。";});
+$("back").addEventListener("click",()=>location.href="./index.html");
+$("search").addEventListener("input",render);$("set").addEventListener("change",render);$("ownership").addEventListener("change",render);
+(async()=>{
+ try {
+  const {data}=await sb.auth.getSession();user=data.session?.user||null;authUI();
+  await loadCards();
+  if(user) await loadCounts();
+ } catch(e) {$("status").textContent="読み込みエラー："+e.message;}
+})();
+</script>
+</body>
+</html>
