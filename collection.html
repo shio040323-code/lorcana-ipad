@@ -126,7 +126,7 @@ function render() {
   const nChip=document.createElement("div");nChip.className="count-chip";nChip.innerHTML='<span>N</span><b></b>';nChip.querySelector('b').textContent=v.n;
   const fChip=document.createElement("div");fChip.className="count-chip";fChip.innerHTML='<span class="count-f">F</span><b class="fnum"></b>';fChip.querySelector('b').textContent=v.f;
   countsRow.append(nChip,fChip);card.appendChild(countsRow);
-  const edit=document.createElement("button");edit.className="edit-count";edit.textContent="枚数を入力";edit.disabled=!user;
+  const edit=document.createElement("button");edit.className="edit-count";edit.textContent="枚数を入力";edit.disabled=false;
   edit.addEventListener("click",()=>openInput(c));
   card.appendChild(edit);frag.appendChild(card);
  }
@@ -138,8 +138,8 @@ function updateInputUI(){
  $("nValue").classList.toggle("active",activeCount==="n");$("fValue").classList.toggle("active",activeCount==="f");
 }
 function openInput(c){
- if(!user){$("status").textContent="枚数を入力するにはログインしてください。";return;}
- editingCard=c;const v=counts.get(c.code)||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
+ editingCard=c;
+ if(!user){$("status").textContent="入力画面は開けます。PC・iPad共有の自動保存にはログインが必要です。";}const v=counts.get(c.code)||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
  $("inputCardName").textContent=c.code+"　"+c.name+(c.version?" / "+c.version:"");updateInputUI();$("inputScreen").style.display="block";
 }
 function closeInput(){$("inputScreen").style.display="none";editingCard=null;}
