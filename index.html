@@ -134,8 +134,9 @@
   .card-image-wrap.owned {
     box-shadow: 0 0 0 3px #d4b45d, 0 1px 5px rgba(0,0,0,.25);
   }
+  /* 未取得カードも画像は暗くせず、元の明るさで表示 */
   .card-image-wrap.not-owned .card-image {
-    filter: brightness(.48) saturate(.72);
+    filter: none;
   }
 
   .card-image-wrap.purchased {
