@@ -21,6 +21,11 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 #inkFilters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .ink-filter{padding:7px 10px;border-radius:8px;font-size:12px;font-weight:800;border:2px solid transparent;color:#172033}
 .ink-filter.active{outline:2px solid #fff;box-shadow:0 0 0 3px #6c8bd4}
+.ink-filter[data-ink="all"],.ink-filter[data-ink="dual"]{background:#f5f7ff;color:#172033;border-color:#aab5cc}
+.ink-filter{color:#172033!important;text-shadow:none;white-space:nowrap}
+.card .code,.card .name,.card .counts,.card .count-chip,.card .count-chip b{color:#172033!important}
+.card .count-chip .fnum{color:#b00020!important}
+.card.owned{opacity:1}
 .ink-filter[data-ink="amber"]{background:#FFE48F}.ink-filter[data-ink="amethyst"]{background:#C7A1E3}.ink-filter[data-ink="emerald"]{background:#9BFFC8}.ink-filter[data-ink="ruby"]{background:#FFA7A7}.ink-filter[data-ink="sapphire"]{background:#B9EDFF}.ink-filter[data-ink="steel"]{background:#CDCDCD}
 #cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
 .card{background:linear-gradient(145deg,#202943,#11182a);border:1px solid #46516f;border-radius:11px;padding:9px;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0005;min-width:0;color:#f6f7ff}.card.owned{background:linear-gradient(145deg,#252b3b,#151b2a);border-color:#46516f;box-shadow:0 4px 12px #0005;opacity:.72}.card.not-owned{background:linear-gradient(145deg,#252c41,#111725);color:#f5f7ff}
@@ -43,7 +48,8 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 </div>
 <div class="row"><select id="set"><option value="">すべてのJA</option></select><select id="ownership"><option value="all">すべて</option><option value="missing">未取得（N=0）</option><option value="owned">取得済み（N≥1）</option></select></div>
 <div id="inkFilters" aria-label="インク色フィルター">
-<button type="button" class="ink-filter active" data-ink="all">すべての色</button>
+<button type="button" class="ink-filter active" data-ink="all">すべて</button>
+<button type="button" class="ink-filter" data-ink="dual">デュアルインク</button>
 <button type="button" class="ink-filter" data-ink="amber">アンバー</button>
 <button type="button" class="ink-filter" data-ink="amethyst">アメジスト</button>
 <button type="button" class="ink-filter" data-ink="emerald">エメラルド</button>
@@ -100,17 +106,30 @@ const INK_COLORS = {
  steel:{label:"スティール",hex:"#CDCDCD",aliases:["steel","スティール","スチール","灰","グレー"]}
 };
 let selectedInk = "all";
+const DUAL_INK_FALLBACK = {"ja7-001":["アンバー","スティール"],"ja7-002":["アンバー","サファイア"],"ja7-004":["アンバー","スティール"],"ja7-007":["アンバー","エメラルド"],"ja7-010":["アンバー","エメラルド"],"ja7-011":["アンバー","スティール"],"ja7-012":["アンバー","ルビー"],"ja7-013":["アンバー","アメジスト"],"ja7-019":["アンバー","アメジスト"],"ja7-020":["アンバー","ルビー"],"ja7-021":["アンバー","スティール"],"ja7-022":["アンバー","ルビー"],"ja7-023":["アンバー","サファイア"],"ja7-026":["アンバー","ルビー"],"ja7-028":["アンバー","エメラルド"],"ja7-029":["アンバー","サファイア"],"ja7-032":["アンバー","エメラルド"],"ja7-035":["アンバー","アメジスト"],"ja7-039":["アンバー","サファイア"],"ja7-040":["アンバー","アメジスト"],"ja7-051":["アメジスト","スティール"],"ja7-052":["アメジスト","ルビー"],"ja7-053":["アメジスト","ルビー"],"ja7-054":["アメジスト","ルビー"],"ja7-057":["アメジスト","スティール"],"ja7-063":["アメジスト","エメラルド"],"ja7-064":["アメジスト","ルビー"],"ja7-065":["アメジスト","サファイア"],"ja7-066":["アメジスト","エメラルド"],"ja7-067":["アメジスト","サファイア"],"ja7-068":["アメジスト","エメラルド"],"ja7-069":["アメジスト","サファイア"],"ja7-071":["アメジスト","エメラルド"],"ja7-072":["アメジスト","サファイア"],"ja7-079":["アメジスト","スティール"],"ja7-083":["アメジスト","スティール"],"ja7-094":["エメラルド","ルビー"],"ja7-095":["エメラルド","ルビー"],"ja7-096":["エメラルド","サファイア"],"ja7-097":["エメラルド","サファイア"],"ja7-103":["エメラルド","ルビー"],"ja7-104":["エメラルド","サファイア"],"ja7-105":["エメラルド","スティール"],"ja7-106":["エメラルド","ルビー"],"ja7-107":["エメラルド","スティール"],"ja7-109":["エメラルド","スティール"],"ja7-114":["エメラルド","スティール"],"ja7-119":["エメラルド","サファイア"],"ja7-124":["ルビー","スティール"],"ja7-126":["ルビー","サファイア"],"ja7-132":["ルビー","サファイア"],"ja7-133":["ルビー","スティール"],"ja7-136":["ルビー","サファイア"],"ja7-137":["ルビー","スティール"],"ja7-141":["ルビー","スティール"],"ja7-151":["ルビー","サファイア"],"ja7-163":["サファイア","スティール"],"ja7-172":["サファイア","スティール"],"ja7-173":["サファイア","スティール"],"ja7-176":["サファイア","スティール"],"ja7-206":["アンバー","アメジスト"],"ja7-207":["アンバー","スティール"],"ja7-210":["アメジスト","スティール"],"ja7-213":["エメラルド","ルビー"],"ja7-214":["エメラルド","サファイア"],"ja7-217":["ルビー","サファイア"],"ja8-005":["アンバー","アメジスト"],"ja8-006":["アンバー","ルビー"],"ja8-007":["アンバー","サファイア"],"ja8-019":["アンバー","アメジスト"],"ja8-020":["アンバー","アメジスト"],"ja8-021":["アンバー","エメラルド"],"ja8-022":["アンバー","エメラルド"],"ja8-023":["アンバー","ルビー"],"ja8-024":["アンバー","ルビー"],"ja8-025":["アンバー","サファイア"],"ja8-026":["アンバー","サファイア"],"ja8-027":["アンバー","サファイア"],"ja8-028":["アンバー","スティール"],"ja8-029":["アンバー","スティール"],"ja8-030":["アンバー","スティール"],"ja8-033":["アンバー","エメラルド"],"ja8-034":["アンバー","アメジスト"],"ja8-039":["アンバー","ルビー"],"ja8-040":["アンバー","スティール"],"ja8-041":["アンバー","エメラルド"],"ja8-047":["アメジスト","ルビー"],"ja8-048":["アメジスト","ルビー"],"ja8-049":["アメジスト","スティール"],"ja8-050":["アメジスト","スティール"],"ja8-066":["アメジスト","エメラルド"],"ja8-067":["アメジスト","エメラルド"],"ja8-068":["アメジスト","エメラルド"],"ja8-069":["アメジスト","ルビー"],"ja8-070":["アメジスト","ルビー"],"ja8-071":["アメジスト","サファイア"],"ja8-072":["アメジスト","サファイア"],"ja8-073":["アメジスト","スティール"],"ja8-074":["アメジスト","スティール"],"ja8-080":["アメジスト","エメラルド"],"ja8-081":["アメジスト","サファイア"],"ja8-084":["アメジスト","サファイア"],"ja8-103":["エメラルド","ルビー"],"ja8-104":["エメラルド","ルビー"],"ja8-105":["エメラルド","ルビー"],"ja8-106":["エメラルド","サファイア"],"ja8-107":["エメラルド","サファイア"],"ja8-108":["エメラルド","スティール"],"ja8-109":["エメラルド","スティール"],"ja8-110":["エメラルド","スティール"],"ja8-111":["エメラルド","サファイア"],"ja8-117":["エメラルド","ルビー"],"ja8-118":["エメラルド","スティール"],"ja8-120":["エメラルド","サファイア"],"ja8-123":["ルビー","サファイア"],"ja8-138":["ルビー","サファイア"],"ja8-139":["ルビー","サファイア"],"ja8-140":["ルビー","スティール"],"ja8-141":["ルビー","スティール"],"ja8-142":["ルビー","スティール"],"ja8-148":["ルビー","サファイア"],"ja8-149":["ルビー","スティール"],"ja8-168":["サファイア","スティール"],"ja8-169":["サファイア","スティール"],"ja8-170":["サファイア","スティール"],"ja8-171":["サファイア","スティール"],"ja8-205":["アンバー","エメラルド"],"ja8-206":["アンバー","ルビー"],"ja8-207":["アンバー","サファイア"],"ja8-210":["アメジスト","エメラルド"],"ja8-211":["アメジスト","ルビー"],"ja8-213":["アメジスト","サファイア"],"ja8-215":["エメラルド","スティール"],"ja8-218":["ルビー","スティール"],"ja8-221":["サファイア","スティール"],"ja13-027":["アンバー","アメジスト"],"ja13-028":["アンバー","エメラルド"],"ja13-029":["アンバー","ルビー"],"ja13-030":["アンバー","サファイア"],"ja13-031":["アンバー","スティール"],"ja13-059":["アメジスト","エメラルド"],"ja13-060":["アメジスト","ルビー"],"ja13-061":["アメジスト","サファイア"],"ja13-062":["アメジスト","サファイア"],"ja13-063":["アメジスト","スティール"],"ja13-098":["エメラルド","ルビー"],"ja13-099":["エメラルド","サファイア"],"ja13-100":["エメラルド","スティール"],"ja13-132":["ルビー","サファイア"],"ja13-133":["ルビー","スティール"],"ja13-165":["サファイア","スティール"],"ja13-227":["アンバー","アメジスト"],"ja13-228":["アンバー","エメラルド"],"ja13-229":["アンバー","ルビー"],"ja13-230":["アンバー","サファイア"],"ja13-232":["アメジスト","エメラルド"],"ja13-233":["アメジスト","ルビー"],"ja13-234":["アメジスト","サファイア"],"ja13-235":["アメジスト","スティール"],"ja13-237":["エメラルド","ルビー"],"ja13-238":["エメラルド","サファイア"],"ja13-239":["エメラルド","スティール"],"ja13-241":["ルビー","スティール"],"ja13-242":["サファイア","スティール"],"ja13-244":["アンバー","スティール"],"ja13-245":["ルビー","サファイア"]};
 function getCardInks(c) {
  const raw = [];
  if (Array.isArray(c.colors)) raw.push(...c.colors);
  else if (c.colors != null) raw.push(c.colors);
- [c.color, c.color1, c.color2, c.ink, c.ink1, c.ink2].forEach(v=>{if(v!=null)raw.push(v)});
+ [c.color, c.color1, c.color2, c.ink, c.ink1, c.ink2].forEach(v=>{if(v!=null && String(v).trim()!=="")raw.push(v)});
  const found=[];
  for (const value of raw) {
   const t=norm(value);
   for (const [key,info] of Object.entries(INK_COLORS)) {
    if (info.aliases.some(a=>norm(a)===t) || t.includes(key) || info.aliases.some(a=>t.includes(norm(a)))) {
     if(!found.includes(key))found.push(key);
+   }
+  }
+ }
+ // 古い cardMaster.json に色2の情報がなくても、既知のデュアルインク一覧で補完
+ if(found.length < 2) {
+  const fallback=DUAL_INK_FALLBACK[String(c.code||"").toLowerCase()];
+  if(fallback) for(const value of fallback) {
+   const t=norm(value);
+   for(const [key,info] of Object.entries(INK_COLORS)) {
+    if(info.aliases.some(a=>norm(a)===t) || t.includes(key) || info.aliases.some(a=>t.includes(norm(a)))) {
+     if(!found.includes(key))found.push(key);
+    }
    }
   }
  }
@@ -164,7 +183,7 @@ function render() {
   const code=String(c.code||""), v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const isHigh = HIGH_RARITIES.has(c.rarity);
   const inks = getCardInks(c);
-  return (highMode ? isHigh : !isHigh) && (selectedInk === "all" || inks.includes(selectedInk)) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
+  return (highMode ? isHigh : !isHigh) && (selectedInk === "all" || (selectedInk === "dual" ? inks.length >= 2 : inks.includes(selectedInk))) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
    (highMode || own==="all"||(own==="missing"&&v.n<1)||(own==="owned"&&v.n>=1));
  });
  visibleCards=filtered;
