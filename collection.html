@@ -70,7 +70,9 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 "use strict";
 const SUPABASE_URL = "https://znmsbvbtcbtgzgtljxzc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgoK6";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+ auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
+});
 let user = null, cards = [], counts = new Map(), visibleCards = [];
 const HIGH_RARITIES = new Set(["エピック", "エンチャンテッド", "アイコニック"]);
 const highMode = new URLSearchParams(location.search).get("high") === "1";
@@ -253,30 +255,44 @@ $("forgotPassword").addEventListener("click",async()=>{
 });
 function showPasswordReset(){
  $("resetPasswordPanel").style.display="flex";
- $("newPassword").focus();
+ setTimeout(()=>$("newPassword").focus(),0);
+}
+function checkPasswordRecoveryUrl(){
+ const params=new URLSearchParams(location.search);
+ const hashParams=new URLSearchParams(location.hash.replace(/^#/,""));
+ if(params.get("reset")==="1" || hashParams.get("type")==="recovery") showPasswordReset();
+ const authError=hashParams.get("error_description")||hashParams.get("error");
+ if(authError){showPasswordReset();$("resetStatus").textContent="再設定リンクの認証に失敗しました。再設定メールをもう一度送信してください。";}
 }
 $("updatePassword").addEventListener("click",async()=>{
  const password=$("newPassword").value,confirm=$("confirmPassword").value;
  if(password.length<6){$("resetStatus").textContent="パスワードは6文字以上にしてください。";return;}
  if(password!==confirm){$("resetStatus").textContent="2つのパスワードが一致しません。";return;}
- $("resetStatus").textContent="更新中…";
- const {error}=await sb.auth.updateUser({password});
- if(error){$("resetStatus").textContent="更新失敗："+error.message;return;}
- $("resetStatus").textContent="パスワードを更新しました。コレクション表に戻ります。";
- $("password").value="";
- setTimeout(()=>{$("resetPasswordPanel").style.display="none";history.replaceState({},document.title,location.pathname);},1200);
+ $("updatePassword").disabled=true;
+ try {
+  $("resetStatus").textContent="認証状態を確認中…";
+  const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+  if(sessionError) throw sessionError;
+  if(!sessionData.session) throw new Error("再設定用の認証が確認できません。再設定メールの最新リンクを開き直してください。");
+  $("resetStatus").textContent="パスワードを更新中…";
+  const {error}=await sb.auth.updateUser({password});
+  if(error) throw error;
+  $("resetStatus").textContent="パスワードを更新しました。新しいパスワードでログインしてください。";
+  $("password").value="";$("newPassword").value="";$("confirmPassword").value="";
+  await sb.auth.signOut();user=null;authUI();
+  setTimeout(()=>{$("resetPasswordPanel").style.display="none";history.replaceState({},document.title,location.pathname);$("status").textContent="パスワードを更新しました。新しいパスワードでログインしてください。";},1400);
+ } catch(e) { $("resetStatus").textContent="更新失敗："+(e.message||String(e)); }
+ finally { $("updatePassword").disabled=false; }
 });
 $("cancelPasswordReset").addEventListener("click",()=>{
  $("resetPasswordPanel").style.display="none";
  history.replaceState({},document.title,location.pathname);
 });
 sb.auth.onAuthStateChange((event,session)=>{
- if(event==="PASSWORD_RECOVERY" || new URLSearchParams(location.search).get("reset")==="1") showPasswordReset();
+ if(event==="PASSWORD_RECOVERY") showPasswordReset();
  if(event==="SIGNED_IN" && session?.user){user=session.user;authUI();}
 });
-if(new URLSearchParams(location.search).get("reset")==="1"){
- showPasswordReset();
-}
+checkPasswordRecoveryUrl();
 $("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
