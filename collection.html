@@ -18,10 +18,14 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 #status{font-size:12px;color:#b8c2dc;margin-top:6px;min-height:16px}
 #resetPasswordPanel{display:none;position:fixed;inset:0;z-index:50;background:#080d1bfa;padding:20px;align-items:center;justify-content:center}#resetPasswordPanel .reset-box{width:min(100%,420px);background:#202943;border:1px solid #596789;border-radius:16px;padding:20px;box-shadow:0 15px 50px #0009}#resetPasswordPanel h2{margin:0 0 12px;font-size:20px}#resetPasswordPanel input{width:100%;margin:7px 0;flex:none}#resetPasswordPanel button{margin-top:8px}
 #filters{display:flex;gap:6px} #search{width:100%;margin-top:6px}
+#inkFilters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.ink-filter{padding:7px 10px;border-radius:8px;font-size:12px;font-weight:800;border:2px solid transparent;color:#172033}
+.ink-filter.active{outline:2px solid #fff;box-shadow:0 0 0 3px #6c8bd4}
+.ink-filter[data-ink="amber"]{background:#FFE48F}.ink-filter[data-ink="amethyst"]{background:#C7A1E3}.ink-filter[data-ink="emerald"]{background:#9BFFC8}.ink-filter[data-ink="ruby"]{background:#FFA7A7}.ink-filter[data-ink="sapphire"]{background:#B9EDFF}.ink-filter[data-ink="steel"]{background:#CDCDCD}
 #cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
 .card{background:linear-gradient(145deg,#202943,#11182a);border:1px solid #46516f;border-radius:11px;padding:9px;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0005;min-width:0;color:#f6f7ff}.card.owned{background:linear-gradient(145deg,#252b3b,#151b2a);border-color:#46516f;box-shadow:0 4px 12px #0005;opacity:.72}.card.not-owned{background:linear-gradient(145deg,#252c41,#111725);color:#f5f7ff}
-.code{font-weight:850;font-size:14px;letter-spacing:.02em;color:#fff} .name{font-size:12px;min-height:28px;margin:5px 0;color:#e3e9fb}
-.counts{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;font-weight:800}.count-chip{display:flex;gap:5px;align-items:center;font-size:13px;color:#d9e4ff}.count-chip b{font-size:18px;color:#fff}.count-chip .fnum{color:#ff7777}.edit-count{width:100%;margin-top:8px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
+.code{font-weight:850;font-size:14px;letter-spacing:.02em;color:#172033} .name{font-size:12px;min-height:28px;margin:5px 0;color:#172033}
+.counts{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;font-weight:800}.count-chip{display:flex;gap:5px;align-items:center;font-size:13px;color:#172033}.count-chip b{font-size:18px;color:#172033}.count-chip .fnum{color:#ff7777}.edit-count{width:100%;margin-top:8px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
 #inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.input-actions button{flex:1;min-height:46px}.input-actions .nav-button{background:#303a54;color:#f5f7ff;border-color:#697796}.hint{font-size:11px;color:#aebbd8;margin-top:9px}.keyboard-hint{font-size:12px;color:#b9c8e8;margin-top:8px}.count-value{user-select:none}
 @media(min-width:700px){#cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}}
 </style>
@@ -38,6 +42,15 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 <button id="logout" style="display:none">ログアウト</button>
 </div>
 <div class="row"><select id="set"><option value="">すべてのJA</option></select><select id="ownership"><option value="all">すべて</option><option value="missing">未取得（N=0）</option><option value="owned">取得済み（N≥1）</option></select></div>
+<div id="inkFilters" aria-label="インク色フィルター">
+<button type="button" class="ink-filter active" data-ink="all">すべての色</button>
+<button type="button" class="ink-filter" data-ink="amber">アンバー</button>
+<button type="button" class="ink-filter" data-ink="amethyst">アメジスト</button>
+<button type="button" class="ink-filter" data-ink="emerald">エメラルド</button>
+<button type="button" class="ink-filter" data-ink="ruby">ルビー</button>
+<button type="button" class="ink-filter" data-ink="sapphire">サファイア</button>
+<button type="button" class="ink-filter" data-ink="steel">スティール</button>
+</div>
 <input id="search" type="search" placeholder="カード番号・カード名で検索">
 <div id="status">ログインするとPC・iPad間で枚数を共有できます。</div>
 </header>
@@ -78,6 +91,37 @@ const HIGH_RARITIES = new Set(["エピック", "エンチャンテッド", "ア�
 const highMode = new URLSearchParams(location.search).get("high") === "1";
 const $ = id => document.getElementById(id);
 function norm(v) { return String(v ?? "").normalize("NFKC").toLowerCase().replace(/[\s\-_]/g,""); }
+const INK_COLORS = {
+ amber:{label:"アンバー",hex:"#FFE48F",aliases:["amber","アンバー","黄","黄色"]},
+ amethyst:{label:"アメジスト",hex:"#C7A1E3",aliases:["amethyst","アメジスト","紫"]},
+ emerald:{label:"エメラルド",hex:"#9BFFC8",aliases:["emerald","エメラルド","緑"]},
+ ruby:{label:"ルビー",hex:"#FFA7A7",aliases:["ruby","ルビー","赤"]},
+ sapphire:{label:"サファイア",hex:"#B9EDFF",aliases:["sapphire","サファイア","青"]},
+ steel:{label:"スティール",hex:"#CDCDCD",aliases:["steel","スティール","スチール","灰","グレー"]}
+};
+let selectedInk = "all";
+function getCardInks(c) {
+ const raw = [];
+ if (Array.isArray(c.colors)) raw.push(...c.colors);
+ else if (c.colors != null) raw.push(c.colors);
+ [c.color, c.color1, c.color2, c.ink, c.ink1, c.ink2].forEach(v=>{if(v!=null)raw.push(v)});
+ const found=[];
+ for (const value of raw) {
+  const t=norm(value);
+  for (const [key,info] of Object.entries(INK_COLORS)) {
+   if (info.aliases.some(a=>norm(a)===t) || t.includes(key) || info.aliases.some(a=>t.includes(norm(a)))) {
+    if(!found.includes(key))found.push(key);
+   }
+  }
+ }
+ return found;
+}
+function inkBackground(inks) {
+ if (inks.length >= 2) return `linear-gradient(135deg, ${INK_COLORS[inks[0]].hex} 0%, ${INK_COLORS[inks[0]].hex} 49.5%, ${INK_COLORS[inks[1]].hex} 50.5%, ${INK_COLORS[inks[1]].hex} 100%)`;
+ if (inks.length === 1) return INK_COLORS[inks[0]].hex;
+ return "";
+}
+function updateInkButtons(){document.querySelectorAll(".ink-filter").forEach(b=>b.classList.toggle("active",b.dataset.ink===selectedInk));}
 function ja(code) { const m=String(code||"").toUpperCase().match(/^JA(\d+)(?:[-_]|$)/); return m ? "JA"+Number(m[1]) : ""; }
 async function fetchJson(name) {
  const r=await fetch("./"+name+"?ts="+Date.now(),{cache:"no-store"});
@@ -95,7 +139,8 @@ async function loadCards() {
    code: String(c.code).trim(),
    name: String(c.name || ""),
    version: String(c.version || ""),
-   rarity: String(c.rarity || "")
+   rarity: String(c.rarity || ""),
+    colors: c.colors, color: c.color, color1: c.color1, color2: c.color2, ink: c.ink, ink1: c.ink1, ink2: c.ink2
  }));
  cards.sort((a,b)=>String(a.code).localeCompare(String(b.code), "ja", {numeric:true}));
  const sets=[...new Set(cards.map(c=>ja(c.code)).filter(Boolean))].sort((a,b)=>Number(a.slice(2))-Number(b.slice(2)));
@@ -118,7 +163,8 @@ function render() {
  const filtered=cards.filter(c=>{
   const code=String(c.code||""), v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const isHigh = HIGH_RARITIES.has(c.rarity);
-  return (highMode ? isHigh : !isHigh) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
+  const inks = getCardInks(c);
+  return (highMode ? isHigh : !isHigh) && (selectedInk === "all" || inks.includes(selectedInk)) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
    (highMode || own==="all"||(own==="missing"&&v.n<1)||(own==="owned"&&v.n>=1));
  });
  visibleCards=filtered;
@@ -127,6 +173,7 @@ function render() {
  for(const c of filtered) {
   const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const card=document.createElement("article");card.className="card "+(v.n>=1?"owned":"not-owned");
+  const inks=getCardInks(c); const inkBg=inkBackground(inks); if(inkBg){card.style.background=inkBg;card.style.backgroundImage=inkBg;card.style.color="#172033";card.style.borderColor="#68738a";}
   const cd=document.createElement("div");cd.className="code";cd.textContent=code;card.appendChild(cd);
   const rarityMark = document.createElement("span");
   const rarityMap = {
@@ -296,6 +343,7 @@ checkPasswordRecoveryUrl();
 $("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
+document.querySelectorAll(".ink-filter").forEach(b=>b.addEventListener("click",()=>{selectedInk=b.dataset.ink;updateInkButtons();render();}));
 $("search").addEventListener("input",render);$("set").addEventListener("change",render);$("ownership").addEventListener("change",render);
 (async()=>{
  try {
