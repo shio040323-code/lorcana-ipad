@@ -74,7 +74,8 @@
     white-space: nowrap;
   }
 
-  #setFilter {
+  #setFilter,
+  #inkFilter {
     width: 100%;
     height: 42px;
     margin-bottom: 7px;
@@ -84,6 +85,38 @@
     font-size: 16px;
     background: white;
     color: #222;
+  }
+
+  .ink-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 7px;
+  }
+
+  .ink-filter button {
+    flex: 1 1 auto;
+    min-width: 78px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #bbb;
+    border-radius: 9px;
+    background: #fff;
+    color: #333;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .ink-filter button.active {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+  }
+
+  .ink-filter button:active {
+    opacity: .75;
   }
 
   #search {
@@ -129,14 +162,6 @@
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,.18);
-  }
-
-  .card-image-wrap.owned {
-    box-shadow: 0 0 0 3px #d4b45d, 0 1px 5px rgba(0,0,0,.25);
-  }
-  /* 未取得カードも画像は暗くせず、元の明るさで表示 */
-  .card-image-wrap.not-owned .card-image {
-    filter: none;
   }
 
   .card-image-wrap.purchased {
@@ -339,6 +364,8 @@
     <option value="">すべてのJA</option>
   </select>
 
+  <div id="inkFilter" class="ink-filter" aria-label="インク色選択"></div>
+
   <input
     id="search"
     type="search"
@@ -348,16 +375,6 @@
     spellcheck="false"
   >
 
-  <div style="display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap">
-    <button id="collectionButton" type="button" style="padding:8px 12px;border:0;border-radius:8px;background:#123b70;color:white;font-weight:700">コレクション表</button>
-    <span id="authState" style="font-size:12px;color:#555">共有データ未接続</span>
-  </div>
-  <div id="authPanel" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">
-    <input id="authEmail" type="email" placeholder="Supabase登録メール" autocomplete="username" style="flex:1;min-width:160px;padding:8px;border:1px solid #ccc;border-radius:7px">
-    <input id="authPassword" type="password" placeholder="パスワード" autocomplete="current-password" style="flex:1;min-width:130px;padding:8px;border:1px solid #ccc;border-radius:7px">
-    <button id="loginButton" type="button" style="padding:8px 12px;border:1px solid #aaa;border-radius:7px;background:white">ログイン</button>
-    <button id="logoutButton" type="button" style="display:none;padding:8px 12px;border:1px solid #aaa;border-radius:7px;background:white">ログアウト</button>
-  </div>
   <div id="status"></div>
 </header>
 
@@ -370,15 +387,8 @@
   <img id="modal-img" alt="">
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
-
-const SUPABASE_URL = "https://znmsbvbtcbtgzgtljxzc.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgoK6";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-let signedInUser = null;
-let sharedCounts = new Map();
 
 let allCards = [];
 let filteredCards = [];
@@ -386,6 +396,7 @@ let filteredCards = [];
 const gallery = document.getElementById("gallery");
 const search = document.getElementById("search");
 const setFilter = document.getElementById("setFilter");
+const inkFilter = document.getElementById("inkFilter");
 const count = document.getElementById("count");
 const status = document.getElementById("status");
 const loading = document.getElementById("loading");
@@ -471,6 +482,105 @@ function getJASet(code) {
   return match ? `JA${Number(match[1])}` : "";
 }
 
+
+function getCardInks(card) {
+  // データの持ち方に幅広く対応
+  const values = [
+    card.ink,
+    card.inks,
+    card.inkColor,
+    card.inkColors,
+    card.color,
+    card.colors,
+    card.color2
+  ];
+
+  const result = [];
+
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      result.push(...value);
+    } else if (typeof value === "string") {
+      // 「アンバー/アメジスト」「アンバー,アメジスト」
+      // 「アンバー・アメジスト」などにも対応
+      result.push(...value.split(/[\/,、・&＋+]|(?:\s+and\s+)/i));
+    }
+  }
+
+  // 重複除去・空白除去
+  return [...new Set(
+    result
+      .map(v => String(v).trim())
+      .filter(Boolean)
+  )];
+}
+
+function buildInkFilter() {
+  const values = [...new Set(
+    allCards.flatMap(card => getCardInks(card))
+  )];
+
+  const order = [
+    "アンバー",
+    "アメジスト",
+    "エメラルド",
+    "ルビー",
+    "サファイア",
+    "スティール"
+  ];
+
+  values.sort((a, b) => {
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b, "ja");
+  });
+
+  const current = inkFilter.dataset.value || "";
+
+  inkFilter.innerHTML = "";
+
+  // すべて
+  const allButton = document.createElement("button");
+  allButton.type = "button";
+  allButton.textContent = "すべて";
+  allButton.className = current === "" ? "active" : "";
+  allButton.addEventListener("click", () => {
+    inkFilter.dataset.value = "";
+    updateInkButtons();
+    render();
+  });
+  inkFilter.appendChild(allButton);
+
+  // インク色ボタン
+  for (const value of values) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = value;
+    button.dataset.ink = value;
+    button.className = current === value ? "active" : "";
+
+    button.addEventListener("click", () => {
+      inkFilter.dataset.value = value;
+      updateInkButtons();
+      render();
+    });
+
+    inkFilter.appendChild(button);
+  }
+
+  function updateInkButtons() {
+    const selected = inkFilter.dataset.value || "";
+    inkFilter.querySelectorAll("button").forEach(button => {
+      const value = button.dataset.ink || "";
+      button.classList.toggle("active", value === selected);
+    });
+  }
+}
+
 function buildSetFilter() {
   const values = [...new Set(
     allCards
@@ -506,6 +616,7 @@ function render() {
   const keyword = normalize(search.value);
 
   const selectedSet = setFilter.value;
+  const selectedInk = inkFilter.dataset.value || "";
 
   filteredCards = allCards.filter(card => {
     const matchesSet =
@@ -514,7 +625,12 @@ function render() {
     const matchesSearch =
       !keyword || cardSearchText(card).includes(keyword);
 
-    return matchesSet && matchesSearch;
+    // ダブルインクは「どちらか一方」を選んでも表示
+    const cardInks = getCardInks(card);
+    const matchesInk =
+      !selectedInk || cardInks.includes(selectedInk);
+
+    return matchesSet && matchesSearch && matchesInk;
   });
 
   count.textContent = `${filteredCards.length} / ${allCards.length}枚`;
@@ -594,11 +710,8 @@ function render() {
     }
 
     // PC側の印刷データと同じN/F枚数を表示
-    const savedCounts = sharedCounts.get(String(card.code || ""));
-    const normal = savedCounts ? Number(savedCounts.normal_count || 0) : Number(card.normal ?? 0);
-    const foil = savedCounts ? Number(savedCounts.foil_count || 0) : Number(card.foil ?? 0);
-    wrap.classList.toggle("owned", normal >= 1);
-    wrap.classList.toggle("not-owned", normal < 1);
+    const normal = Number(card.normal ?? 0);
+    const foil = Number(card.foil ?? 0);
 
     const counts = document.createElement("div");
     counts.className = "card-counts";
@@ -727,6 +840,7 @@ async function loadData() {
     });
 
     buildSetFilter();
+    buildInkFilter();
 
     loading.style.display = "none";
 
@@ -766,86 +880,6 @@ document.addEventListener("keydown", event => {
     modalImg.src = "";
   }
 });
-
-async function refreshSharedCounts() {
-  if (!signedInUser) return;
-  const { data, error } = await supabaseClient
-    .from("lorcana_collection")
-    .select("card_code, normal_count, foil_count")
-    .eq("user_id", signedInUser.id);
-  if (error) throw error;
-  sharedCounts = new Map((data || []).map(row => [
-    String(row.card_code),
-    { normal_count: row.normal_count, foil_count: row.foil_count }
-  ]));
-  render();
-}
-
-function updateAuthUi() {
-  const state = document.getElementById("authState");
-  const login = document.getElementById("loginButton");
-  const logout = document.getElementById("logoutButton");
-  const panel = document.getElementById("authPanel");
-  if (signedInUser) {
-    state.textContent = `Supabase接続中：${signedInUser.email || "ログイン済み"}`;
-    login.style.display = "none";
-    logout.style.display = "";
-    document.getElementById("authEmail").style.display = "none";
-    document.getElementById("authPassword").style.display = "none";
-  } else {
-    state.textContent = "枚数共有にはログインが必要です";
-    login.style.display = "";
-    logout.style.display = "none";
-    document.getElementById("authEmail").style.display = "";
-    document.getElementById("authPassword").style.display = "";
-  }
-}
-
-document.getElementById("collectionButton").addEventListener("click", () => {
-  window.location.href = "./collection.html";
-});
-
-document.getElementById("loginButton").addEventListener("click", async () => {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
-  const state = document.getElementById("authState");
-  if (!email || !password) {
-    state.textContent = "メールアドレスとパスワードを入力してください";
-    return;
-  }
-  state.textContent = "ログイン中...";
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) {
-    state.textContent = "ログイン失敗：" + error.message;
-    return;
-  }
-  signedInUser = data.user;
-  updateAuthUi();
-  try {
-    await refreshSharedCounts();
-    state.textContent = `Supabase接続中：${signedInUser.email || ""}`;
-  } catch (e) {
-    state.textContent = "データ読込失敗：" + e.message;
-  }
-});
-
-document.getElementById("logoutButton").addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
-  signedInUser = null;
-  sharedCounts = new Map();
-  updateAuthUi();
-  render();
-});
-
-(async function initSupabaseAuth() {
-  const { data } = await supabaseClient.auth.getSession();
-  signedInUser = data.session?.user || null;
-  updateAuthUi();
-  if (signedInUser) {
-    try { await refreshSharedCounts(); }
-    catch (e) { document.getElementById("authState").textContent = "共有データ読込失敗：" + e.message; }
-  }
-})();
 
 loadData();
 </script>
