@@ -57,8 +57,8 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
  #printTable td{width:16.666%;padding:0.6mm 1mm;vertical-align:middle;border-bottom:1px solid #ccc}
  #printTable .entry{display:flex;align-items:center;gap:0;min-height:5.5mm;white-space:nowrap;break-inside:avoid}
  #printTable .code-chip{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:0;padding:.5mm 1mm;margin:0;border-radius:1mm;font-size:7.5pt;line-height:1.2;font-weight:900;color:#111;white-space:nowrap}
- #printTable .rarity{display:inline-flex;flex:0 0 auto;align-items:center;gap:0;padding:0;margin:0 0 0 .5mm;border:0;border-radius:0;background:transparent!important;box-shadow:none;color:#111!important;font-size:0;line-height:1}
- #printTable .rarity::before{content:"";display:inline-block;width:3.2mm;height:3.2mm;flex:0 0 3.2mm;margin:0;filter:none}
+ #printTable .rarity{display:inline-flex;flex:0 0 2.5mm;width:2.5mm;min-width:2.5mm;max-width:2.5mm;overflow:hidden;align-items:center;gap:0;padding:0;margin:0 0 0 .2mm;border:0;border-radius:0;background:transparent!important;box-shadow:none;color:#111!important;font-size:0;line-height:1}
+ #printTable .rarity::before{content:"";display:inline-block;width:2.5mm;height:2.5mm;flex:0 0 2.5mm;margin:0;filter:none}
  #printTable .rarity.rare::before{clip-path:polygon(50% 0,100% 100%,0 100%);background:#111}
  #printTable .rarity.super::before{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#111}
  #printTable .rarity.legendary::before{clip-path:polygon(50% 0,97% 35%,79% 92%,21% 92%,3% 35%);background:#111}
@@ -409,9 +409,16 @@ function buildPrintTable(){
   const mark=cls?`<span class="rarity ${cls}" aria-label="${escapePrint(c.rarity)}"></span>`:"";
   cells.push(`<td><div class="entry">${chip}${mark}<span class="counts"><span>N ${v.n}</span><span>F ${v.f}</span></span></div></td>`);
  }
+ // 縦方向に番号順で並べ、下端まで行ったら次の列へ移動
+ const columnCount=6;
+ const rowsPerColumn=Math.ceil(cells.length/columnCount);
  let body="";
- for(let i=0;i<cells.length;i+=6){
-  const row=cells.slice(i,i+6);while(row.length<6)row.push("<td></td>");
+ for(let rowIndex=0;rowIndex<rowsPerColumn;rowIndex++){
+  const row=[];
+  for(let col=0;col<columnCount;col++){
+   const cellIndex=col*rowsPerColumn+rowIndex;
+   row.push(cellIndex<cells.length?cells[cellIndex]:"<td></td>");
+  }
   body+=`<tr>${row.join("")}</tr>`;
  }
  wrap.innerHTML=`<div id="printTitle">LORCANA　コレクション一覧</div><div id="printLegend">レアリティマークはコレクション表と同じ形</div><table id="printTable"><tbody>${body}</tbody></table>`;
