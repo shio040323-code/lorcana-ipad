@@ -27,18 +27,37 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 .card .count-chip .fnum{color:#b00020!important}
 .card.owned{opacity:1}
 .ink-filter[data-ink="amber"]{background:#FFE48F}.ink-filter[data-ink="amethyst"]{background:#C7A1E3}.ink-filter[data-ink="emerald"]{background:#9BFFC8}.ink-filter[data-ink="ruby"]{background:#FFA7A7}.ink-filter[data-ink="sapphire"]{background:#B9EDFF}.ink-filter[data-ink="steel"]{background:#CDCDCD}
-#cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
-.card{background:linear-gradient(145deg,#202943,#11182a);border:1px solid #46516f;border-radius:11px;padding:9px;box-shadow:inset 0 1px 0 #ffffff12,0 4px 12px #0005;min-width:0;color:#f6f7ff}.card.owned{background:linear-gradient(145deg,#252b3b,#151b2a);border-color:#46516f;box-shadow:0 4px 12px #0005;opacity:.72}.card.not-owned{background:linear-gradient(145deg,#252c41,#111725);color:#f5f7ff}
-.code{font-weight:850;font-size:14px;letter-spacing:.02em;color:#172033} .name{font-size:12px;min-height:28px;margin:5px 0;color:#172033}
-.counts{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:8px;font-weight:800}.count-chip{display:flex;gap:5px;align-items:center;font-size:13px;color:#172033}.count-chip b{font-size:18px;color:#172033}.count-chip .fnum{color:#ff7777}.edit-count{width:100%;margin-top:8px;background:linear-gradient(135deg,#e5edff,#b9c9f3);color:#142344;border-color:#9eb5ec;font-weight:800}
+#cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:8px;align-items:start}
+.card{display:grid;grid-template-columns:minmax(0,1fr) 26px 26px;align-items:stretch;gap:0;background:#fff;border:1px solid #222;border-radius:0;padding:0;box-shadow:none;min-width:0;color:#172033;cursor:pointer;break-inside:avoid}.card.owned,.card.not-owned{opacity:1;border-color:#222;box-shadow:none}
+.card .code{font-weight:850;font-size:12px;letter-spacing:.02em;color:#172033!important;padding:4px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}.card .name{display:none}
+.card .rarity{display:inline-flex;align-self:center;justify-self:start;font-size:9px;line-height:1;padding:0;margin:0 2px 0 0;border:0;background:transparent!important;color:#172033!important;box-shadow:none;gap:0}.card .rarity::before{width:10px;height:10px;flex-basis:10px;filter:none;margin-right:2px}
+.counts{display:contents}.count-chip{display:flex;align-items:center;justify-content:center;gap:2px;border-left:1px solid #333;font-size:9px;color:#172033!important;min-height:25px}.count-chip b{font-size:11px;color:#172033!important}.count-chip .fnum{color:#b00020!important}.edit-count{display:none} .card .code-line{display:flex;align-items:center;min-width:0;overflow:hidden}.card .code-line .code{flex:1}
+@media(max-width:600px){#cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}.card{grid-template-columns:minmax(0,1fr) 22px 22px}.card .code{font-size:11px;padding:4px 3px}}
 #inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.input-actions button{flex:1;min-height:46px}.input-actions .nav-button{background:#303a54;color:#f5f7ff;border-color:#697796}.hint{font-size:11px;color:#aebbd8;margin-top:9px}.keyboard-hint{font-size:12px;color:#b9c8e8;margin-top:8px}.count-value{user-select:none}
-@media(min-width:700px){#cards{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}}
+@media(min-width:1000px){#cards{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px}}
+
+/* コレクション表の印刷：選択中のフィルター結果を3列で印刷 */
+@media print {
+ @page { size: auto; margin: 8mm; }
+ html,body { background:#fff!important; color:#000!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+ header,#inputScreen,#resetPasswordPanel { display:none!important; }
+ #cards { display:grid!important; grid-template-columns:repeat(6,minmax(0,1fr))!important; gap:0!important; padding:0!important; }
+ .card,.card.owned,.card.not-owned { break-inside:avoid; page-break-inside:avoid; opacity:1!important; border:1px solid #222!important; border-radius:0!important; box-shadow:none!important; padding:0!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+ .card .code,.card .name,.card .counts,.card .count-chip,.card .count-chip b { color:#172033!important; }
+ .card .count-chip .fnum { color:#b00020!important; }
+ .card .code { font-size:8pt!important; padding:2px 3px!important; }
+ .card .count-chip { font-size:6.5pt!important; min-height:16px!important; }
+ .card .count-chip b { font-size:7pt!important; }
+ .card .rarity { font-size:6pt!important; }
+ .card .rarity::before { width:7px!important;height:7px!important;flex-basis:7px!important; }
+ .edit-count { display:none!important; }
+}
 </style>
 </head>
 <body>
 <header>
 <h1>ロルカナ コレクション表</h1>
-<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
+<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><button id="printButton" type="button">印刷</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
 <div class="row">
 <input id="email" type="email" placeholder="Supabase登録メール" autocomplete="username">
 <input id="password" type="password" placeholder="パスワード" autocomplete="current-password">
@@ -192,26 +211,18 @@ function render() {
  for(const c of filtered) {
   const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const card=document.createElement("article");card.className="card "+(v.n>=1?"owned":"not-owned");
-  const inks=getCardInks(c); const inkBg=inkBackground(inks); if(inkBg){card.style.background=inkBg;card.style.backgroundImage=inkBg;card.style.color="#172033";card.style.borderColor="#68738a";}
-  const cd=document.createElement("div");cd.className="code";cd.textContent=code;card.appendChild(cd);
-  const rarityMark = document.createElement("span");
-  const rarityMap = {
-    "レア": ["R レア", "rare"],
-    "スーパーレア": ["SR スーパーレア", "super"],
-    "レジェンダリー": ["L レジェンダリー", "legendary"],
-    "エピック": ["E エピック", "epic"],
-    "エンチャンテッド": ["EN エンチャンテッド", "enchanted"],
-    "アイコニック": ["IC アイコニック", "iconic"]
-  };
-  if(rarityMap[c.rarity]) { rarityMark.className="rarity "+rarityMap[c.rarity][1]; rarityMark.textContent=rarityMap[c.rarity][0]; card.appendChild(rarityMark); }
-  const nm=document.createElement("div");nm.className="name";nm.textContent=(c.name||"")+(c.version?" / "+c.version:"");card.appendChild(nm);
-  const countsRow=document.createElement("div");countsRow.className="counts";
+  const inks=getCardInks(c); const inkBg=inkBackground(inks); if(inkBg){card.style.background=inkBg;card.style.backgroundImage=inkBg;card.style.color="#172033";card.style.borderColor="#222";}
+  const line=document.createElement("div");line.className="code-line";
+  const cd=document.createElement("div");cd.className="code";cd.textContent=code;line.appendChild(cd);
+  const rarityMap={"コモン":["C","common"],"アンコモン":["U","uncommon"],"レア":["△","rare"],"スーパーレア":["◇","super"],"レジェンダリー":["⬟","legendary"],"エピック":["E","epic"],"エンチャンテッド":["✦","enchanted"],"アイコニック":["IC","iconic"]};
+  if(rarityMap[c.rarity]){const mark=document.createElement("span");mark.className="rarity "+rarityMap[c.rarity][1];mark.textContent=rarityMap[c.rarity][0];mark.title=c.rarity;line.appendChild(mark);}
+  card.appendChild(line);
   const nChip=document.createElement("div");nChip.className="count-chip";nChip.innerHTML='<span>N</span><b></b>';nChip.querySelector('b').textContent=v.n;
   const fChip=document.createElement("div");fChip.className="count-chip";fChip.innerHTML='<span class="count-f">F</span><b class="fnum"></b>';fChip.querySelector('b').textContent=v.f;
-  countsRow.append(nChip,fChip);card.appendChild(countsRow);
-  const edit=document.createElement("button");edit.className="edit-count";edit.textContent="枚数を入力";edit.disabled=false;
-  edit.addEventListener("click",()=>openInput(c));
-  card.appendChild(edit);frag.appendChild(card);
+  card.append(nChip,fChip);
+  card.title=(c.name||"")+(c.version?" / "+c.version:"")+"\nクリックして枚数を入力";
+  card.addEventListener("click",()=>openInput(c));
+  frag.appendChild(card);
  }
  host.appendChild(frag);
 }
@@ -360,6 +371,7 @@ sb.auth.onAuthStateChange((event,session)=>{
 });
 checkPasswordRecoveryUrl();
 $("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
+$("printButton").addEventListener("click",()=>window.print());
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
 document.querySelectorAll(".ink-filter").forEach(b=>b.addEventListener("click",()=>{selectedInk=b.dataset.ink;updateInkButtons();render();}));
