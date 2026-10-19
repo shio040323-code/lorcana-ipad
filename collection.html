@@ -44,22 +44,23 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 @media(max-width:600px){.high-only #cards{grid-template-columns:repeat(2,minmax(0,1fr));}.high-only .card .rarity::before{width:20px;height:20px;flex-basis:20px}.high-only .card .count-chip{font-size:12px}.high-only .card .count-chip b{font-size:17px}}
 @media(min-width:1000px){#cards{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px}}
 
-/* コレクション表の印刷：選択中のフィルター結果を3列で印刷 */
+/* 印刷時だけ、インク色・番号・レアリティ・所有枚数の表に切り替え */
+#printTableWrap{display:none}
 @media print {
- @page { size: auto; margin: 8mm; }
- html,body { background:#fff!important; color:#000!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
- header,#inputScreen,#resetPasswordPanel { display:none!important; }
- #cards { display:grid!important; grid-template-columns:repeat(6,minmax(0,1fr))!important; gap:0!important; padding:0!important; }
- .card,.card.owned,.card.not-owned { break-inside:avoid; page-break-inside:avoid; opacity:1!important; border:1px solid #222!important; border-radius:0!important; box-shadow:none!important; padding:0!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
- .card .code,.card .name,.card .counts,.card .count-chip,.card .count-chip b { color:#172033!important; }
- .card .count-chip .fnum { color:#b00020!important; }
- .card .code { font-size:8pt!important; padding:2px 3px!important; }
- .card .name { display:block!important; font-size:6.5pt!important; padding:1px 3px 2px!important; }
- .card .count-chip { font-size:8pt!important; min-height:18px!important; border-left:0!important; }
- .card .count-chip b { font-size:9pt!important; }
- .card .rarity { font-size:9pt!important; }
- .card .rarity::before { width:12px!important;height:12px!important;flex-basis:12px!important; }
- .edit-count { display:none!important; }
+ @page { size: A4 portrait; margin: 8mm; }
+ html,body { background:#fff!important; color:#111!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+ header,#inputScreen,#resetPasswordPanel,#cards { display:none!important; }
+ #printTableWrap { display:block!important; font-family:Arial,Meiryo,sans-serif; }
+ #printTable { width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt; }
+ #printTable th,#printTable td { border:1px solid #555; padding:4px 6px; text-align:center; height:26px; }
+ #printTable th { background:#e8e8e8!important; font-weight:700; }
+ #printTable .ink-cell { width:24%; font-weight:700; }
+ #printTable .code-cell { width:32%; font-weight:700; }
+ #printTable .rarity-cell { width:14%; }
+ #printTable .count-cell { width:15%; }
+ #printTable .ink-chip { display:inline-block; padding:2px 5px; border:1px solid #777; border-radius:3px; color:#111; font-size:9pt; }
+ #printTable .rarity-symbol { font-size:16pt; font-weight:900; }
+ #printTable .dual-chip { background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important; }
 }
 </style>
 </head>
@@ -89,6 +90,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 <div id="status">ログインするとPC・iPad間で枚数を共有できます。</div>
 </header>
 <div id="cards"></div>
+<div id="printTableWrap" aria-hidden="true"></div>
 <div id="resetPasswordPanel" role="dialog" aria-modal="true" aria-label="パスワード再設定">
  <div class="reset-box">
   <h2>新しいパスワードを設定</h2>
@@ -385,7 +387,21 @@ sb.auth.onAuthStateChange((event,session)=>{
 });
 checkPasswordRecoveryUrl();
 $("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
-$("printButton").addEventListener("click",()=>window.print());
+function escapePrint(value){return String(value??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));}
+function buildPrintTable(){
+ const wrap=$("printTableWrap");
+ const symbols={"レア":"△","スーパーレア":"◇","レジェンダリー":"⬟","エピック":"E","エンチャンテッド":"✦","アイコニック":"IC"};
+ const rows=visibleCards.map(c=>{
+  const inks=getCardInks(c), labels=inks.map(k=>INK_COLORS[k]?.label||k);
+  const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
+  const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
+  const v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const inkHtml=inks.length>=2?`<span class="ink-chip dual-chip" style="--ink1:${first};--ink2:${second}">${labels.join("＋")}</span>`:`<span class="ink-chip" style="background:${first}">${labels[0]||"—"}</span>`;
+  return `<tr><td class="ink-cell">${inkHtml}</td><td class="code-cell">${escapePrint(c.code)}<br><small>${escapePrint(c.name||"")}</small></td><td class="rarity-cell"><span class="rarity-symbol">${symbols[c.rarity]||""}</span></td><td class="count-cell">${v.n}</td><td class="count-cell">${v.f}</td></tr>`;
+ }).join("");
+ wrap.innerHTML=`<table id="printTable"><thead><tr><th>インク色</th><th>カード番号・カード名</th><th>レアリティ</th><th>N 所有枚数</th><th>F 所有枚数</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+$("printButton").addEventListener("click",()=>{buildPrintTable();window.print();});
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
 document.querySelectorAll(".ink-filter").forEach(b=>b.addEventListener("click",()=>{selectedInk=b.dataset.ink;updateInkButtons();render();}));
