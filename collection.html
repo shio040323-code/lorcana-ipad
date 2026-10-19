@@ -44,21 +44,25 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 @media(max-width:600px){.high-only #cards{grid-template-columns:repeat(2,minmax(0,1fr));}.high-only .card .rarity::before{width:20px;height:20px;flex-basis:20px}.high-only .card .count-chip{font-size:12px}.high-only .card .count-chip b{font-size:17px}}
 @media(min-width:1000px){#cards{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px}}
 
-/* 印刷時だけ、カード番号をインク色で塗った一覧表にする */
+/* 印刷専用：6色を横並びにした一覧。画面表示は変更しない */
 #printTableWrap{display:none}
-@media print {
- @page { size: A4 landscape; margin: 7mm; }
- html,body { background:#fff!important; color:#111!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
- header,#inputScreen,#resetPasswordPanel,#cards { display:none!important; }
- #printTableWrap { display:block!important; font-family:Arial,Meiryo,sans-serif; }
- #printTable { width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt; }
- #printTable th,#printTable td { border:0; border-bottom:1px solid #aaa; padding:3px 5px; text-align:center; height:24px; }
- #printTable th { background:#eee!important; font-weight:700; }
- #printTable .code-cell { width:32%; font-weight:800; }
- #printTable .rarity-cell { width:12%; font-size:16pt; font-weight:900; }
- #printTable .count-cell { width:14%; font-size:12pt; font-weight:700; }
- #printTable .code-chip { display:inline-block; min-width:78px; padding:3px 7px; border:1px solid #888; border-radius:2px; color:#111; font-size:11pt; font-weight:900; }
- #printTable .dual-chip { background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important; }
+@media print{
+ @page{size:A4 landscape;margin:6mm}
+ html,body{background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+ header,#inputScreen,#resetPasswordPanel,#cards{display:none!important}
+ #printTableWrap{display:block!important;font-family:Arial,Meiryo,sans-serif}
+ #printTitle{font-size:14pt;font-weight:800;margin:0 0 3mm}
+ #printLegend{font-size:8pt;margin:0 0 2mm}
+ #printTable{width:100%;border-collapse:separate;border-spacing:2mm 0;table-layout:fixed;font-size:8pt}
+ #printTable th{font-size:9pt;text-align:left;padding:1mm;border-bottom:1px solid #777}
+ #printTable td{padding:.5mm 0;vertical-align:top}
+ #printTable .ink-group{width:16.66%}
+ #printTable .ink-head{font-weight:800;padding:1.5mm 1mm;margin-bottom:1mm}
+ #printTable .entry{display:flex;align-items:center;gap:1mm;min-height:6mm;border-bottom:1px solid #ddd;padding:.3mm 0;break-inside:avoid}
+ #printTable .code-chip{display:inline-flex;align-items:center;justify-content:center;min-width:11mm;padding:1mm .8mm;font-size:8pt;font-weight:900;color:#111;border-radius:1mm;white-space:nowrap}
+ #printTable .rarity-cell{width:4mm;text-align:center;font-size:11pt;font-weight:900}
+ #printTable .counts{margin-left:auto;display:flex;gap:1mm;font-size:7pt;white-space:nowrap}
+ #printTable .dual-chip{background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important}
 }
 </style>
 </head>
@@ -389,16 +393,22 @@ function escapePrint(value){return String(value??"").replace(/[&<>"]/g,ch=>({"&"
 function buildPrintTable(){
  const wrap=$("printTableWrap");
  const symbols={"レア":"△","スーパーレア":"◇","レジェンダリー":"⬟","エピック":"⬟","エンチャンテッド":"○","アイコニック":"◎"};
- const rows=visibleCards.map(c=>{
-  const inks=getCardInks(c);
+ const groups=[["amber","アンバー"],["amethyst","アメジスト"],["emerald","エメラルド"],["ruby","ルビー"],["sapphire","サファイア"],["steel","スティール"]];
+ const entriesByInk=Object.fromEntries(groups.map(([key])=>[key,[]]));
+ for(const c of visibleCards){
+  const inks=getCardInks(c),v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const code=escapePrint(c.code),rarity=escapePrint(symbols[c.rarity]||"");
   const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
   const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
-  const v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
-  const codeStyle=inks.length>=2?`background:linear-gradient(135deg,${first} 0 49%,${second} 51% 100%)`:`background:${first}`;
-  const rarity=symbols[c.rarity]||"";
-  return `<tr><td class="code-cell"><span class="code-chip" style="${codeStyle}">${escapePrint(c.code)}</span></td><td class="rarity-cell">${rarity}</td><td class="count-cell">N　${v.n}</td><td class="count-cell">F　${v.f}</td></tr>`;
- }).join("");
- wrap.innerHTML=`<table id="printTable"><thead><tr><th>カード番号</th><th>レアリティ</th><th>N 所有枚数</th><th>F 所有枚数</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const chip=inks.length>=2?`<span class="code-chip dual-chip" style="--ink1:${first};--ink2:${second}">${code}</span>`:`<span class="code-chip" style="background:${first}">${code}</span>`;
+  const row=`<div class="entry">${chip}<span class="rarity-cell">${rarity}</span><span class="counts">N ${v.n}<br>F ${v.f}</span></div>`;
+  for(const ink of inks) if(entriesByInk[ink]) entriesByInk[ink].push(row);
+  if(!inks.length) entriesByInk.steel.push(row);
+ }
+ const heads=groups.map(([key,label])=>`<th class="ink-group"><div class="ink-head" style="background:${INK_COLORS[key].hex}">${label}</div></th>`).join("");
+ const max=Math.max(...groups.map(([key])=>entriesByInk[key].length),0);let body="";
+ for(let i=0;i<max;i++) body+="<tr>"+groups.map(([key])=>`<td class="ink-group">${entriesByInk[key][i]||""}</td>`).join("")+"</tr>";
+ wrap.innerHTML=`<div id="printTitle">LORCANA　コレクション一覧</div><div id="printLegend">△ レア　◇ スーパーレア　⬟ レジェンダリー／エピック　○ エンチャンテッド　◎ アイコニック</div><table id="printTable"><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table>`;
 }
 $("printButton").addEventListener("click",()=>{buildPrintTable();window.print();});
 $("back").addEventListener("click",()=>location.href="./index.html");
