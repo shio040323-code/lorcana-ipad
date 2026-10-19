@@ -44,22 +44,20 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 @media(max-width:600px){.high-only #cards{grid-template-columns:repeat(2,minmax(0,1fr));}.high-only .card .rarity::before{width:20px;height:20px;flex-basis:20px}.high-only .card .count-chip{font-size:12px}.high-only .card .count-chip b{font-size:17px}}
 @media(min-width:1000px){#cards{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px}}
 
-/* 印刷時だけ、インク色・番号・レアリティ・所有枚数の表に切り替え */
+/* 印刷時だけ、カード番号をインク色で塗った一覧表にする */
 #printTableWrap{display:none}
 @media print {
- @page { size: A4 portrait; margin: 8mm; }
+ @page { size: A4 landscape; margin: 7mm; }
  html,body { background:#fff!important; color:#111!important; -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
  header,#inputScreen,#resetPasswordPanel,#cards { display:none!important; }
  #printTableWrap { display:block!important; font-family:Arial,Meiryo,sans-serif; }
  #printTable { width:100%; border-collapse:collapse; table-layout:fixed; font-size:10pt; }
- #printTable th,#printTable td { border:1px solid #555; padding:4px 6px; text-align:center; height:26px; }
- #printTable th { background:#e8e8e8!important; font-weight:700; }
- #printTable .ink-cell { width:24%; font-weight:700; }
- #printTable .code-cell { width:32%; font-weight:700; }
- #printTable .rarity-cell { width:14%; }
- #printTable .count-cell { width:15%; }
- #printTable .ink-chip { display:inline-block; padding:2px 5px; border:1px solid #777; border-radius:3px; color:#111; font-size:9pt; }
- #printTable .rarity-symbol { font-size:16pt; font-weight:900; }
+ #printTable th,#printTable td { border:0; border-bottom:1px solid #aaa; padding:3px 5px; text-align:center; height:24px; }
+ #printTable th { background:#eee!important; font-weight:700; }
+ #printTable .code-cell { width:32%; font-weight:800; }
+ #printTable .rarity-cell { width:12%; font-size:16pt; font-weight:900; }
+ #printTable .count-cell { width:14%; font-size:12pt; font-weight:700; }
+ #printTable .code-chip { display:inline-block; min-width:78px; padding:3px 7px; border:1px solid #888; border-radius:2px; color:#111; font-size:11pt; font-weight:900; }
  #printTable .dual-chip { background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important; }
 }
 </style>
@@ -390,16 +388,17 @@ $("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null
 function escapePrint(value){return String(value??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));}
 function buildPrintTable(){
  const wrap=$("printTableWrap");
- const symbols={"レア":"△","スーパーレア":"◇","レジェンダリー":"⬟","エピック":"E","エンチャンテッド":"✦","アイコニック":"IC"};
+ const symbols={"レア":"△","スーパーレア":"◇","レジェンダリー":"⬟","エピック":"⬟","エンチャンテッド":"○","アイコニック":"◎"};
  const rows=visibleCards.map(c=>{
-  const inks=getCardInks(c), labels=inks.map(k=>INK_COLORS[k]?.label||k);
+  const inks=getCardInks(c);
   const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
   const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
   const v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
-  const inkHtml=inks.length>=2?`<span class="ink-chip dual-chip" style="--ink1:${first};--ink2:${second}">${labels.join("＋")}</span>`:`<span class="ink-chip" style="background:${first}">${labels[0]||"—"}</span>`;
-  return `<tr><td class="ink-cell">${inkHtml}</td><td class="code-cell">${escapePrint(c.code)}<br><small>${escapePrint(c.name||"")}</small></td><td class="rarity-cell"><span class="rarity-symbol">${symbols[c.rarity]||""}</span></td><td class="count-cell">${v.n}</td><td class="count-cell">${v.f}</td></tr>`;
+  const codeStyle=inks.length>=2?`background:linear-gradient(135deg,${first} 0 49%,${second} 51% 100%)`:`background:${first}`;
+  const rarity=symbols[c.rarity]||"";
+  return `<tr><td class="code-cell"><span class="code-chip" style="${codeStyle}">${escapePrint(c.code)}</span></td><td class="rarity-cell">${rarity}</td><td class="count-cell">N　${v.n}</td><td class="count-cell">F　${v.f}</td></tr>`;
  }).join("");
- wrap.innerHTML=`<table id="printTable"><thead><tr><th>インク色</th><th>カード番号・カード名</th><th>レアリティ</th><th>N 所有枚数</th><th>F 所有枚数</th></tr></thead><tbody>${rows}</tbody></table>`;
+ wrap.innerHTML=`<table id="printTable"><thead><tr><th>カード番号</th><th>レアリティ</th><th>N 所有枚数</th><th>F 所有枚数</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 $("printButton").addEventListener("click",()=>{buildPrintTable();window.print();});
 $("back").addEventListener("click",()=>location.href="./index.html");
