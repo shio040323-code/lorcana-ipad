@@ -58,10 +58,10 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
  #printTable td{padding:.5mm 0;vertical-align:top}
  #printTable .ink-group{width:16.66%}
  #printTable .ink-head{display:none!important}
- #printTable .entry{display:flex;align-items:center;gap:.3mm;min-height:6mm;border-bottom:1px solid #ddd;padding:.3mm 0;break-inside:avoid}
- #printTable .code-chip{display:inline-flex;align-items:center;justify-content:center;min-width:11mm;padding:1mm .8mm;font-size:8pt;font-weight:900;color:#111;border-radius:1mm;white-space:nowrap}
- #printTable .rarity-cell{flex:0 0 3mm;width:3mm;text-align:left;font-size:11pt;font-weight:900;margin-left:0;padding:0}
- #printTable .counts{margin-left:auto;display:flex;flex-direction:row;align-items:center;gap:1.2mm;font-size:7pt;white-space:nowrap;line-height:1}
+ #printTable .entry{display:flex;align-items:center;gap:0;min-height:6mm;border-bottom:1px solid #ddd;padding:.3mm 0;break-inside:avoid}
+ #printTable .code-chip{display:inline-flex;align-items:center;justify-content:center;min-width:11mm;padding:1mm .5mm;font-size:8pt;font-weight:900;color:#111;border-radius:1mm;white-space:nowrap;flex:0 0 auto}
+ #printTable .rarity-cell{flex:0 0 auto;width:auto;text-align:left;font-size:11pt;font-weight:900;margin:0;padding:0;line-height:1}
+ #printTable .counts{margin-left:auto;display:flex;flex-direction:row;align-items:center;gap:1mm;font-size:7pt;white-space:nowrap;line-height:1;flex:0 0 auto} #printTable .counts span{display:inline-block;white-space:nowrap}
  #printTable .dual-chip{background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important}
 }
 </style>
@@ -401,7 +401,7 @@ function buildPrintTable(){
   const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
   const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
   const chip=inks.length>=2?`<span class="code-chip dual-chip" style="--ink1:${first};--ink2:${second}">${code}</span>`:`<span class="code-chip" style="background:${first}">${code}</span>`;
-  const row=`<div class="entry">${chip}<span class="rarity-cell">${rarity}</span><span class="counts">N ${v.n}<br>F ${v.f}</span></div>`;
+  const row=`<div class="entry">${chip}<span class="rarity-cell">${rarity}</span><span class="counts"><span>N ${v.n}</span><span>F ${v.f}</span></span></div>`;
   for(const ink of inks) if(entriesByInk[ink]) entriesByInk[ink].push(row);
   if(!inks.length) entriesByInk.steel.push(row);
  }
