@@ -57,7 +57,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
   .print-col{display:grid!important;grid-template-rows:repeat(30,minmax(0,1fr))!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
   .print-cell{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;display:flex!important;align-items:center!important;gap:0.05mm!important;padding:0 .05mm!important;border-bottom:.15mm solid #ccc!important;box-sizing:border-box!important;overflow:hidden!important;white-space:nowrap!important;break-inside:avoid!important}
   .print-code{display:inline-flex!important;flex:0 0 13mm!important;width:13mm!important;min-width:13mm!important;max-width:13mm!important;height:8mm!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;padding:0!important;border-radius:.4mm!important;font-size:6.6pt!important;line-height:1!important;font-weight:900!important;color:#111!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
-  .print-rarity{display:inline-flex!important;flex:0 0 5mm!important;width:5mm!important;height:5mm!important;min-width:5mm!important;max-width:5mm!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:transparent!important;font-size:0!important;line-height:1!important}
+  .print-rarity{display:inline-flex!important;flex:0 0 6mm!important;width:6mm!important;height:6mm!important;min-width:6mm!important;max-width:6mm!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:transparent!important;font-size:0!important;line-height:1!important}
   .print-rarity::before{content:""!important;display:inline-block!important;width:5mm!important;height:5mm!important;flex:0 0 3mm!important;margin:0!important;filter:none!important}
   .print-counts{display:inline-flex!important;flex:1 1 auto!important;min-width:0!important;align-items:center!important;justify-content:flex-end!important;gap:.6mm!important;margin-left:auto!important;font-size:8pt!important;line-height:1!important;white-space:nowrap!important}
   .print-counts span{display:inline-block!important;white-space:nowrap!important}
@@ -409,7 +409,7 @@ function buildPrintTable(){
  // 列ごとに30枚ずつ明示的に分割し、各列を上から下へ、その後右隣の列へ配置する。
  const columns=[];
  for(let col=0;col<7;col++) columns.push(`<div class="print-col">${cells.slice(col*30,(col+1)*30).join("")}</div>`);
- wrap.innerHTML=`<div id="printTitle">LORCANA　コレクション一覧（最大210枚）</div><div id="printGrid">${columns.join("")}</div>`;
+ wrap.innerHTML=`<div id="printTitle">LORCANA　コレクション一覧</div><div id="printGrid">${columns.join("")}</div>`;
 }
 $("printButton").addEventListener("click",()=>{buildPrintTable();window.print();});
 $("back").addEventListener("click",()=>location.href="./index.html");
