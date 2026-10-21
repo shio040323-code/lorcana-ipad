@@ -38,7 +38,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 .card {height: 94px;overflow: hidden;}
 @media(max-width:600px){#cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px}.card{grid-template-columns:minmax(0,1fr) 28px 28px}.card .code{font-size:11px;padding:4px 3px}.card .rarity::before{width:16px;height:16px;flex-basis:16px}.count-chip{font-size:11px}.count-chip b{font-size:14px}}
 @media print {.card.owned,.card.not-owned {opacity: 1 !important;}}
-#inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.input-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.input-actions button{flex:1;min-height:46px}.input-actions .nav-button{background:#303a54;color:#f5f7ff;border-color:#697796}.hint{font-size:11px;color:#aebbd8;margin-top:9px}.keyboard-hint{font-size:12px;color:#b9c8e8;margin-top:8px}.count-value{user-select:none}
+#inputScreen{position:fixed;inset:0;z-index:20;background:#080d1bfa;display:none;overflow:auto;padding: max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))}.input-panel{max-width:440px;margin:0 auto;background:linear-gradient(145deg,#202943,#11182a);border:1px solid #596789;border-radius:18px;padding:16px;box-shadow:0 15px 50px #0009}.input-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.input-head h2{font-size:18px;margin:0}.input-name{color:#cbd5ee;font-size:13px;margin:7px 0 14px}.counter{display:grid;grid-template-columns:62px 52px 1fr 52px;gap:8px;align-items:center;margin:12px 0}.counter label{font-weight:900}.counter label.f{color:#ff7777}.counter button{font-size:24px;font-weight:900;padding:8px 0;min-height:48px}.counter .minus{background:#303a54}.counter .plus{background:#245c9a}.count-value{font-size:25px;text-align:center;background:#f6f8ff;color:#10172a;border-radius:9px;padding:9px 3px;font-weight:900;min-width:0}.count-value.active{outline:3px solid #69baff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.keypad button{font-size:23px;font-weight:800;min-height:52px;background:#202b45}.keypad .utility{font-size:15px;background:#35415d}.keypad .enter-key{grid-column:span 3;background:#176fc1;font-size:18px;font-weight:900;min-height:48px}.input-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.input-actions button{flex:1;min-height:46px}.input-actions .nav-button{background:#303a54;color:#f5f7ff;border-color:#697796}.hint{font-size:11px;color:#aebbd8;margin-top:9px}.keyboard-hint{font-size:12px;color:#b9c8e8;margin-top:8px}.count-value{user-select:none}
 /* 高レア画面にも通常コレクション表と同じ一覧表示を適用 */
 .high-only #cards{grid-template-columns:repeat(3,minmax(0,1fr));}
 .high-only .card{grid-template-columns:minmax(0,1fr) 32px 32px;border-left:0!important;border-right:0!important;}
@@ -116,7 +116,7 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
   <div class="counter"><label>N 通常</label><button class="minus" id="nMinus">−</button><div class="count-value active" id="nValue">0</div><button class="plus" id="nPlus">＋</button></div>
   <div class="counter"><label class="f">F フォイル</label><button class="minus" id="fMinus">−</button><div class="count-value" id="fValue">0</div><button class="plus" id="fPlus">＋</button></div>
   <div class="hint">数字を選んでテンキー入力、または＋・−で変更できます。変更内容は自動保存されます。</div>
-  <div class="keypad" id="keypad"><button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="utility" data-key="clear">クリア</button><button data-key="0">0</button><button class="utility" data-key="back">⌫</button></div>
+  <div class="keypad" id="keypad"><button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="utility" data-key="clear">クリア</button><button data-key="0">0</button><button class="utility" data-key="back">⌫</button><button class="utility enter-key" data-key="enter">Enter ↵</button></div>
   <div class="keyboard-hint">PC：数字キーで入力／Backspaceで1桁削除／←→ボタンで前後のカードへ</div>
   <div class="input-actions"><button id="prevCard" class="nav-button">← 前のカード</button><button id="inputDone" class="primary">入力完了</button><button id="nextCard" class="nav-button">次のカード →</button></div>
  </div>
@@ -292,7 +292,22 @@ function changedCount(){updateInputUI();if(saveTimer)clearTimeout(saveTimer);sav
 function changeCount(which,delta){if(which==="n")editN=Math.max(0,Math.min(999,editN+delta));else editF=Math.max(0,Math.min(999,editF+delta));activeCount=which;changedCount();}
 $("nValue").addEventListener("click",()=>{activeCount="n";updateInputUI();});$("fValue").addEventListener("click",()=>{activeCount="f";updateInputUI();});
 $("nMinus").addEventListener("click",()=>changeCount("n",-1));$("nPlus").addEventListener("click",()=>changeCount("n",1));$("fMinus").addEventListener("click",()=>changeCount("f",-1));$("fPlus").addEventListener("click",()=>changeCount("f",1));
-$("keypad").addEventListener("click",e=>{const b=e.target.closest("button[data-key]");if(!b)return;let val=activeCount==="n"?String(editN):String(editF),key=b.dataset.key;if(key==="clear")val="0";else if(key==="back")val=val.length>1?val.slice(0,-1):"0";else val=(val==="0"?"":val)+key;val=String(Math.max(0,Math.min(999,parseInt(val,10)||0)));if(activeCount==="n")editN=Number(val);else editF=Number(val);changedCount();});
+$("keypad").addEventListener("click",e=>{
+ const b=e.target.closest("button[data-key]");if(!b)return;
+ const key=b.dataset.key;
+ if(key==="enter"){
+  if(activeCount==="n"){activeCount="f";updateInputUI();}
+  else {moveCard(1);}
+  return;
+ }
+ let val=activeCount==="n"?String(editN):String(editF);
+ if(key==="clear")val="0";
+ else if(key==="back")val=val.length>1?val.slice(0,-1):"0";
+ else val=(val==="0"?"":val)+key;
+ val=String(Math.max(0,Math.min(999,parseInt(val,10)||0)));
+ if(activeCount==="n")editN=Number(val);else editF=Number(val);
+ changedCount();
+});
 $("closeInput").addEventListener("click",closeInput);
 $("prevCard").addEventListener("click",()=>moveCard(-1));
 $("nextCard").addEventListener("click",()=>moveCard(1));
