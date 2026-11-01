@@ -636,26 +636,21 @@ async function loadData() {
     */
 
     async function fetchJson(fileName) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      try {
-        const response = await fetch("./" + fileName + "?ts=" + Date.now(), {
-          cache: "no-store",
-          signal: controller.signal
-        });
+      // 25MB未満の missing.json は分割せず、そのまま読み込む。
+      // 通信に時間がかかる場合があるため、固定時間で中断しない。
+      const response = await fetch("./" + fileName + "?ts=" + Date.now(), {
+        cache: "no-store"
+      });
 
-        if (response.status === 404) return null;
-        if (!response.ok) {
-          throw new Error(`${fileName} の取得に失敗しました（HTTP ${response.status}）`);
-        }
+      if (response.status === 404) return null;
+      if (!response.ok) {
+        throw new Error(`${fileName} の取得に失敗しました（HTTP ${response.status}）`);
+      }
+
+      try {
         return await response.json();
       } catch (error) {
-        if (error.name === "AbortError") {
-          throw new Error(`${fileName} の読み込みが20秒でタイムアウトしました。GitHub上のJSONファイルを確認してください。`);
-        }
-        throw error;
-      } finally {
-        clearTimeout(timeoutId);
+        throw new Error(`${fileName} のJSON解析に失敗しました。ファイルの内容を確認してください。`);
       }
     }
 
