@@ -57,8 +57,17 @@
   .title-row {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .sub-title-row {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
+    min-height: 36px;
     margin-bottom: 8px;
   }
 
@@ -352,8 +361,11 @@
 
 <header id="header">
   <div class="title-row">
-    <h1 id="title">ロルカナ 未取得カード</h1><dr>
-    <a id="collectionLink" href="./collection.html">コレクション表</a></dr>
+    <h1 id="title">ロルカナ 未取得カード</h1>
+  </div>
+
+  <div class="sub-title-row">
+    <a id="collectionLink" href="./collection.html">コレクション表</a>
     <div id="count">読み込み中...</div>
   </div>
 
