@@ -650,8 +650,10 @@ async function loadData() {
     async function fetchJson(fileName) {
       // 25MB未満の missing.json は分割せず、そのまま読み込む。
       // 通信に時間がかかる場合があるため、固定時間で中断しない。
-      const response = await fetch("./" + fileName + "?ts=" + Date.now(), {
-        cache: "no-store"
+      // URLを毎回変えず、ブラウザのHTTPキャッシュを利用しながら更新を確認する。
+      // no-cache はキャッシュを無条件に使う設定ではなく、サーバーに更新確認を行う。
+      const response = await fetch("./" + fileName, {
+        cache: "no-cache"
       });
 
       if (response.status === 404) return null;
