@@ -57,17 +57,8 @@
   .title-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .sub-title-row {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
     gap: 8px;
-    min-height: 36px;
     margin-bottom: 8px;
   }
 
@@ -75,23 +66,6 @@
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-  }
-
-  #collectionLink {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    min-height: 36px;
-    padding: 6px 12px;
-    border: 1px solid #315f9e;
-    border-radius: 8px;
-    background: #176fc1;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
   }
 
   #count {
@@ -362,10 +336,6 @@
 <header id="header">
   <div class="title-row">
     <h1 id="title">ロルカナ 未取得カード</h1>
-  </div>
-
-  <div class="sub-title-row">
-    <a id="collectionLink" href="./collection.html">コレクション表</a>
     <div id="count">読み込み中...</div>
   </div>
 
@@ -648,24 +618,15 @@ async function loadData() {
     */
 
     async function fetchJson(fileName) {
-      // 25MB未満の missing.json は分割せず、そのまま読み込む。
-      // 通信に時間がかかる場合があるため、固定時間で中断しない。
-      // URLを毎回変えず、ブラウザのHTTPキャッシュを利用しながら更新を確認する。
-      // no-cache はキャッシュを無条件に使う設定ではなく、サーバーに更新確認を行う。
-      const response = await fetch("./" + fileName, {
-        cache: "no-cache"
+      const response = await fetch("./" + fileName + "?ts=" + Date.now(), {
+        cache: "no-store"
       });
 
-      if (response.status === 404) return null;
       if (!response.ok) {
-        throw new Error(`${fileName} の取得に失敗しました（HTTP ${response.status}）`);
+        return null;
       }
 
-      try {
-        return await response.json();
-      } catch (error) {
-        throw new Error(`${fileName} のJSON解析に失敗しました。ファイルの内容を確認してください。`);
-      }
+      return await response.json();
     }
 
     let data = await fetchJson("missing.json");
@@ -679,8 +640,6 @@ async function loadData() {
         const fileName =
           `missing_${String(partNo).padStart(3, "0")}.json`;
 
-        loading.textContent = `${fileName} を読み込んでいます...`;
-        status.textContent = `読み込み済み：${parts.length}枚`;
         const partData = await fetchJson(fileName);
 
         // 連番の次が存在しなければ終了
@@ -715,7 +674,7 @@ async function loadData() {
 
       if (parts.length === 0) {
         throw new Error(
-          "missing.json または missing_001.json 以降のデータが見つかりません。GitHubにJSONが配置されているか確認してください。"
+          "missing.json または missing_001.json 以降のデータが見つかりません"
         );
       }
 
