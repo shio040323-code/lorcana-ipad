@@ -84,11 +84,11 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
   body.count-print-mode .count-print-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5mm;height:100%}
   body.count-print-mode .count-print-col{display:grid;grid-template-rows:5mm repeat(10,minmax(0,1fr));min-width:0;min-height:0}
   body.count-print-mode .count-print-label{text-align:center;font-size:6pt;line-height:5mm;border-bottom:.2mm solid #777}
-  body.count-print-mode .count-print-cell{display:flex;align-items:stretch;min-width:0;min-height:0;border:.2mm solid #222;overflow:hidden;box-sizing:border-box;background:#fff}
-  body.count-print-mode .count-print-code{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-width:0;font-size:7pt;font-weight:800;letter-spacing:.2pt;white-space:nowrap;overflow:hidden;color:#111}
+  body.count-print-mode .count-print-cell{display:flex;align-items:stretch;min-width:0;min-height:0;border:.2mm solid #222;overflow:hidden;box-sizing:border-box;background:#fff;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body.count-print-mode .count-print-code{display:flex;align-items:center;justify-content:center;flex:0 0 8.5mm;width:8.5mm;min-width:8.5mm;max-width:8.5mm;font-size:6.8pt;font-weight:800;letter-spacing:.1pt;white-space:nowrap;overflow:hidden;color:#111;background:transparent}
   body.count-print-mode .count-print-rarity{display:flex;align-items:center;justify-content:center;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;padding:0;margin:0;border:0;background:transparent!important;font-size:0;color:transparent}
   body.count-print-mode .count-print-rarity::before{content:"";display:block;width:2.2mm;height:2.2mm;filter:none;margin:0}
-  body.count-print-mode .count-print-boxcell{display:block;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;border-left:.2mm solid #222;background:#fff}
+  body.count-print-mode .count-print-boxcell{display:block;flex:1 1 0;width:auto;min-width:0;border-left:.2mm solid #222;background:#fff}
  }
 
 </style>
@@ -482,7 +482,7 @@ function buildCountPrintTable(){
     const cls=rarityClass[c.rarity];
     const mark=cls?`<span class="rarity ${cls} count-print-rarity" title="${esc(c.rarity)}"></span>`:"";
     const numberOnly=String(c.code).match(/(?:[-_])(\d+)$/)?.[1] || String(c.code);
-    rows.push(`<div class="count-print-cell"><span class="count-print-code" style="${bg}">${esc(numberOnly)}</span>${mark}<span class="count-print-boxcell"></span><span class="count-print-boxcell"></span></div>`);
+    rows.push(`<div class="count-print-cell" style="${bg}"><span class="count-print-code">${esc(numberOnly)}</span>${mark}<span class="count-print-boxcell"></span><span class="count-print-boxcell"></span></div>`);
    }
    cols.push(`<div class="count-print-col"><div class="count-print-label">foil</div>${rows.join("")}</div>`);
   }
