@@ -78,18 +78,19 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
   body.count-print-mode .count-print-head{height:18mm;position:relative;border-bottom:.35mm solid #222;margin-bottom:2mm}
   body.count-print-mode .count-print-logo{font-size:16pt;letter-spacing:3pt;font-weight:500;line-height:1.1}
   body.count-print-mode .count-print-sub{font-size:8pt;margin-top:1mm}
-  body.count-print-mode .count-print-box{position:absolute;right:43mm;top:1mm;width:18mm;height:9mm;border:1mm solid #26364d;text-align:center;font-size:9pt;font-weight:bold;line-height:8mm}
-  body.count-print-mode .count-print-legend{position:absolute;right:0;top:1mm;border:.25mm dashed #555;padding:1mm 2mm;font-size:6.5pt;white-space:nowrap}
-  body.count-print-mode .count-print-section{height:88mm;margin-bottom:1mm;overflow:hidden;break-inside:avoid}
+body.count-print-mode .count-print-section{height:88mm;margin-bottom:1mm;overflow:hidden;break-inside:avoid}
   body.count-print-mode .count-print-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5mm;height:100%}
   body.count-print-mode .count-print-col{display:grid;grid-template-rows:5mm repeat(10,minmax(0,1fr));min-width:0;min-height:0}
   body.count-print-mode .count-print-label{text-align:center;font-size:6pt;line-height:5mm;border-bottom:.2mm solid #777}
   body.count-print-mode .count-print-cell{display:flex;align-items:stretch;min-width:0;min-height:0;border:.2mm solid #222;overflow:hidden;box-sizing:border-box;background:#fff;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body.count-print-mode .count-print-info{display:flex;align-items:stretch;flex:0 0 11.7mm;width:11.7mm;min-width:11.7mm;max-width:11.7mm;overflow:hidden;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body.count-print-mode .count-print-code{display:flex;align-items:center;justify-content:center;flex:0 0 8.5mm;width:8.5mm;min-width:8.5mm;max-width:8.5mm;font-size:6.8pt;font-weight:800;letter-spacing:.1pt;white-space:nowrap;overflow:hidden;color:#111;background:transparent}
   body.count-print-mode .count-print-rarity{display:flex;align-items:center;justify-content:center;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;max-width:3.2mm;box-sizing:border-box;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;gap:0!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:0!important;color:transparent!important;overflow:hidden!important}
   body.count-print-mode .count-print-rarity-empty::before{visibility:hidden!important}
   body.count-print-mode .count-print-rarity::before{content:"";display:block;flex:0 0 2.2mm!important;width:2.2mm!important;min-width:2.2mm!important;max-width:2.2mm!important;height:2.2mm!important;min-height:2.2mm!important;max-height:2.2mm!important;box-sizing:border-box;margin:0!important;filter:none!important}
   body.count-print-mode .count-print-boxcell{display:block;flex:1 1 0;width:auto;min-width:0;border-left:.2mm solid #222;background:#fff}
+  body.count-print-mode .count-print-info.dual-ink{background:linear-gradient(90deg,var(--ink1) 0 50%,var(--ink2) 50% 100%)!important}
+  body.count-print-mode .count-print-info.single-ink{background:var(--ink1)!important}
  }
 
 </style>
@@ -466,8 +467,6 @@ function buildCountPrintTable(){
   <div class="count-print-head">
    <div class="count-print-logo">LORCANA</div>
    <div class="count-print-sub">${esc(selected)}　所持枚数記入表　発売日：____________</div>
-   <div class="count-print-box">BOX</div>
-   <div class="count-print-legend">記号： △ レア　◇ スーパー レア　⬟ レジェンダリー</div>
   </div>`;
  for(let section=0;section<3;section++){
   const cols=[];
@@ -479,11 +478,11 @@ function buildCountPrintTable(){
     const inks=getCardInks(c);
     const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
     const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
-    const bg=inks.length>=2?`background:linear-gradient(135deg,${first} 0 49.5%,${second} 50.5% 100%)`:`background:${first}`;
+    const infoStyle=inks.length>=2?`class="count-print-info dual-ink" style="--ink1:${first};--ink2:${second}"`:`class="count-print-info single-ink" style="--ink1:${first}"`;
     const cls=rarityClass[c.rarity];
     const mark=cls?`<span class="rarity ${cls} count-print-rarity" title="${esc(c.rarity)}"></span>`:`<span class="count-print-rarity count-print-rarity-empty" aria-hidden="true"></span>`;
     const numberOnly=String(c.code).match(/(?:[-_])(\d+)$/)?.[1] || String(c.code);
-    rows.push(`<div class="count-print-cell" style="${bg}"><span class="count-print-code">${esc(numberOnly)}</span>${mark}<span class="count-print-boxcell"></span><span class="count-print-boxcell"></span></div>`);
+    rows.push(`<div class="count-print-cell"><span ${infoStyle}><span class="count-print-code">${esc(numberOnly)}</span>${mark}</span><span class="count-print-boxcell"></span><span class="count-print-boxcell"></span></div>`);
    }
    cols.push(`<div class="count-print-col"><div class="count-print-label">foil</div>${rows.join("")}</div>`);
   }
