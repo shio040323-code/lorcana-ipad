@@ -49,37 +49,54 @@ button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background
 @media(max-width:600px){.high-only #cards{grid-template-columns:repeat(2,minmax(0,1fr));}.high-only .card .rarity::before{width:20px;height:20px;flex-basis:20px}.high-only .card .count-chip{font-size:12px}.high-only .card .count-chip b{font-size:17px}}
 @media(min-width:1000px){#cards{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px}}
 
- /* 印刷専用レイアウト：A4縦・7列×10行を3ブロック */
+ /* 印刷専用レイアウト：A4縦1ページ、7列×30行。各列を上から下へ埋める */
  #printTableWrap{display:none}
  @media print{
-  @page{size:A4 portrait;margin:5mm}
-  html,body{width:200mm!important;height:287mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  @page{size:A4 portrait;margin:3mm}
+  html,body{width:204mm!important;height:291mm!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{display:block!important;overflow:hidden!important}
   header,#inputScreen,#resetPasswordPanel,#cards{display:none!important}
-  #printTableWrap{display:block!important;position:fixed!important;inset:0!important;width:200mm!important;height:287mm!important;margin:0!important;padding:0!important;overflow:hidden!important;font-family:Arial,Meiryo,sans-serif;color:#111!important}
-  .print-head{height:19mm;position:relative;border-bottom:.35mm solid #222;margin-bottom:2mm}
-  .print-logo{font-size:16pt;letter-spacing:3pt;font-weight:500;line-height:1.1}
-  .print-subtitle{font-size:8pt;margin-top:1mm}
-  .print-box{position:absolute;right:43mm;top:1mm;width:18mm;height:9mm;border:1mm solid #26364d;border-radius:1mm;text-align:center;font-size:9pt;font-weight:bold;line-height:8mm}
-  .print-legend{position:absolute;right:0;top:1mm;border:.25mm dashed #555;padding:1mm 2mm;font-size:6.5pt;white-space:nowrap}
-  .print-legend span{margin-left:1mm}
-  .print-section{height:86mm;margin-bottom:2mm;break-inside:avoid;overflow:hidden}
-  .print-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5mm;height:100%}
-  .print-col{display:grid;grid-template-rows:5mm repeat(10,minmax(0,1fr));min-width:0;min-height:0}
-  .print-col-label{height:5mm;text-align:center;font-size:6pt;line-height:5mm;border-bottom:.2mm solid #777}
-  .print-cell{display:flex;align-items:stretch;width:100%;min-width:0;min-height:0;border:.2mm solid #222;overflow:hidden;box-sizing:border-box;background:#fff}
-  .print-code{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-width:0;font-size:7pt;font-weight:800;letter-spacing:.4pt;white-space:nowrap;overflow:hidden}
-  .print-rarity{display:flex;align-items:center;justify-content:center;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;padding:0;margin:0;border:0;background:transparent!important;font-size:0;color:transparent}
-  .print-rarity::before{content:"";display:block;width:2.2mm;height:2.2mm;filter:none;margin:0}
-  .print-count-box{display:block;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;border-left:.2mm solid #222;background:#fff}
-  .print-empty{border:.2mm solid #222;background:#fff}
+  #printTableWrap{display:block!important;position:fixed!important;inset:0 auto auto 0!important;width:204mm!important;height:291mm!important;margin:0!important;padding:0!important;overflow:hidden!important;font-family:Arial,Meiryo,sans-serif}
+  #printTitle{display:block!important;height:6mm!important;line-height:6mm!important;font-size:8pt!important;font-weight:800!important;margin:0!important;padding:0!important}
+  #printGrid{display:grid!important;position:absolute!important;left:0!important;top:6mm!important;width:204mm!important;height:285mm!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;column-gap:.35mm!important;box-sizing:border-box!important;overflow:hidden!important}
+  .print-col{display:grid!important;grid-template-rows:repeat(30,minmax(0,1fr))!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
+  .print-cell{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;display:flex!important;align-items:center!important;gap:0.05mm!important;padding:0 .05mm!important;border-bottom:.15mm solid #ccc!important;box-sizing:border-box!important;overflow:hidden!important;white-space:nowrap!important;break-inside:avoid!important}
+  .print-code{display:inline-flex!important;flex:0 0 13mm!important;width:13mm!important;min-width:13mm!important;max-width:13mm!important;height:8mm!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;padding:0!important;border-radius:.4mm!important;font-size:6.6pt!important;line-height:1!important;font-weight:900!important;color:#111!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:clip!important}
+  .print-rarity{display:inline-flex!important;flex:0 0 6mm!important;width:6mm!important;height:6mm!important;min-width:6mm!important;max-width:6mm!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:transparent!important;font-size:0!important;line-height:1!important}
+  .print-rarity::before{content:""!important;display:inline-block!important;width:5mm!important;height:5mm!important;flex:0 0 3mm!important;margin:0!important;filter:none!important}
+  .print-counts{display:inline-flex!important;flex:1 1 auto!important;min-width:0!important;align-items:center!important;justify-content:flex-end!important;gap:.6mm!important;margin-left:auto!important;font-size:8pt!important;line-height:1!important;white-space:nowrap!important}
+  .print-counts span{display:inline-block!important;white-space:nowrap!important}
+  .print-code.dual-chip{background:linear-gradient(135deg,var(--ink1) 0 49%,var(--ink2) 51% 100%)!important}
  }
+
+
+ /* 枚数記入用印刷：既存の通常印刷とは独立 */
+ @media print{
+  body.count-print-mode #printTableWrap{display:block!important;position:fixed!important;inset:0!important;width:204mm!important;height:291mm!important;padding:0!important;overflow:hidden!important}
+  body.count-print-mode #printTitle,body.count-print-mode #printGrid{display:none!important}
+  body.count-print-mode .count-print-page{display:block!important;width:204mm!important;height:291mm!important;overflow:hidden!important}
+  body.count-print-mode .count-print-head{height:18mm;position:relative;border-bottom:.35mm solid #222;margin-bottom:2mm}
+  body.count-print-mode .count-print-logo{font-size:16pt;letter-spacing:3pt;font-weight:500;line-height:1.1}
+  body.count-print-mode .count-print-sub{font-size:8pt;margin-top:1mm}
+  body.count-print-mode .count-print-box{position:absolute;right:43mm;top:1mm;width:18mm;height:9mm;border:1mm solid #26364d;text-align:center;font-size:9pt;font-weight:bold;line-height:8mm}
+  body.count-print-mode .count-print-legend{position:absolute;right:0;top:1mm;border:.25mm dashed #555;padding:1mm 2mm;font-size:6.5pt;white-space:nowrap}
+  body.count-print-mode .count-print-section{height:88mm;margin-bottom:1mm;overflow:hidden;break-inside:avoid}
+  body.count-print-mode .count-print-cols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5mm;height:100%}
+  body.count-print-mode .count-print-col{display:grid;grid-template-rows:5mm repeat(10,minmax(0,1fr));min-width:0;min-height:0}
+  body.count-print-mode .count-print-label{text-align:center;font-size:6pt;line-height:5mm;border-bottom:.2mm solid #777}
+  body.count-print-mode .count-print-cell{display:flex;align-items:stretch;min-width:0;min-height:0;border:.2mm solid #222;overflow:hidden;box-sizing:border-box;background:#fff}
+  body.count-print-mode .count-print-code{display:flex;align-items:center;justify-content:center;flex:1 1 auto;min-width:0;font-size:7pt;font-weight:800;letter-spacing:.2pt;white-space:nowrap;overflow:hidden;color:#111}
+  body.count-print-mode .count-print-rarity{display:flex;align-items:center;justify-content:center;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;padding:0;margin:0;border:0;background:transparent!important;font-size:0;color:transparent}
+  body.count-print-mode .count-print-rarity::before{content:"";display:block;width:2.2mm;height:2.2mm;filter:none;margin:0}
+  body.count-print-mode .count-print-boxcell{display:block;flex:0 0 3.2mm;width:3.2mm;min-width:3.2mm;border-left:.2mm solid #222;background:#fff}
+ }
+
 </style>
 </head>
 <body class="collection-page">
 <header>
 <h1>ロルカナ コレクション表</h1>
-<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><button id="printButton" type="button">印刷</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
+<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><button id="printButton" type="button">印刷</button><button id="countPrintButton" type="button" class="primary">枚数記入用印刷</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
 <div class="row">
 <input id="email" type="email" placeholder="Supabase登録メール" autocomplete="username">
 <input id="password" type="password" placeholder="パスワード" autocomplete="current-password">
@@ -419,43 +436,71 @@ function buildPrintTable(){
  const wrap=$("printTableWrap");
  const rarityClass={"レア":"rare","スーパーレア":"super","レジェンダリー":"legendary","エピック":"epic","エンチャンテッド":"enchanted","アイコニック":"iconic"};
  const list=visibleCards.slice(0,210);
- const selectedSet=$("set").value || (list[0] ? ja(list[0].code) : "");
- const setCards=list;
- const version=(setCards.find(c=>c.version)?.version||"").trim();
- const title=version || (selectedSet ? selectedSet : "コレクション一覧");
- const escape=escapePrint;
- const head=`<div class="print-head">
-  <div class="print-logo">LORCANA</div>
-  <div class="print-subtitle">${escape(selectedSet)}　${escape(title)}　発売日：____________</div>
-  <div class="print-box">BOX</div>
-  <div class="print-legend"><b>記号：</b><span>△ レア</span><span>◇ スーパー レア</span><span>⬟ レジェンダリー</span></div>
- </div>`;
- const sections=[];
+ const cells=list.map(c=>{
+  const inks=getCardInks(c),v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const code=escapePrint(c.code);
+  const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
+  const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
+  const chip=inks.length>=2
+   ? `<span class="print-code dual-chip" style="--ink1:${first};--ink2:${second}">${code}</span>`
+   : `<span class="print-code" style="background:${first}">${code}</span>`;
+  const cls=rarityClass[c.rarity];
+  const mark=cls?`<span class="rarity ${cls} print-rarity" aria-label="${escapePrint(c.rarity)}"></span>`:"";
+  return `<div class="print-cell">${chip}${mark}<span class="print-counts"><span>N ${v.n}</span><span>F ${v.f}</span></span></div>`;
+ });
+ // 列ごとに30枚ずつ明示的に分割し、各列を上から下へ、その後右隣の列へ配置する。
+ const columns=[];
+ for(let col=0;col<7;col++) columns.push(`<div class="print-col">${cells.slice(col*30,(col+1)*30).join("")}</div>`);
+ wrap.innerHTML=`<div id="printTitle">LORCANA　コレクション一覧</div><div id="printGrid">${columns.join("")}</div>`;
+}
+
+function buildCountPrintTable(){
+ const wrap=$("printTableWrap");
+ const selected=$("set").value;
+ if(!selected){$("status").textContent="枚数記入用印刷は、先にJAを選択してください。";$("set").focus();return false;}
+ const list=visibleCards.filter(c=>ja(c.code)===selected).slice(0,210);
+ const rarityClass={"レア":"rare","スーパーレア":"super","レジェンダリー":"legendary","エピック":"epic","エンチャンテッド":"enchanted","アイコニック":"iconic"};
+ const esc=escapePrint;
+ let html=`<div class="count-print-page">
+  <div class="count-print-head">
+   <div class="count-print-logo">LORCANA</div>
+   <div class="count-print-sub">${esc(selected)}　所持枚数記入表　発売日：____________</div>
+   <div class="count-print-box">BOX</div>
+   <div class="count-print-legend">記号： △ レア　◇ スーパー レア　⬟ レジェンダリー</div>
+  </div>`;
  for(let section=0;section<3;section++){
   const cols=[];
   for(let col=0;col<7;col++){
-   const items=[];
+   const rows=[];
    for(let row=0;row<10;row++){
     const c=list[section*70+col*10+row];
-    if(!c){items.push('<div class="print-cell print-empty"></div>');continue;}
+    if(!c){rows.push('<div class="count-print-cell"></div>');continue;}
     const inks=getCardInks(c);
     const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
     const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
     const bg=inks.length>=2?`background:linear-gradient(135deg,${first} 0 49.5%,${second} 50.5% 100%)`:`background:${first}`;
     const cls=rarityClass[c.rarity];
-    const mark=cls?`<span class="rarity ${cls} print-rarity" title="${escape(c.rarity)}"></span>`:"";
-    items.push(`<div class="print-cell"><span class="print-code" style="${bg}">${escape(c.code)}</span>${mark}<span class="print-count-box" aria-label="通常枚数記入欄"></span><span class="print-count-box" aria-label="Foil枚数記入欄"></span></div>`);
+    const mark=cls?`<span class="rarity ${cls} count-print-rarity" title="${esc(c.rarity)}"></span>`:"";
+    const numberOnly=String(c.code).match(/(?:[-_])(\d+)$/)?.[1] || String(c.code);
+    rows.push(`<div class="count-print-cell"><span class="count-print-code" style="${bg}">${esc(numberOnly)}</span>${mark}<span class="count-print-boxcell"></span><span class="count-print-boxcell"></span></div>`);
    }
-   cols.push(`<div class="print-col"><div class="print-col-label">foil</div>${items.join("")}</div>`);
+   cols.push(`<div class="count-print-col"><div class="count-print-label">foil</div>${rows.join("")}</div>`);
   }
-  sections.push(`<div class="print-section"><div class="print-cols">${cols.join("")}</div></div>`);
+  html+=`<div class="count-print-section"><div class="count-print-cols">${cols.join("")}</div></div>`;
  }
- wrap.innerHTML=head+sections.join("");
+ wrap.innerHTML=html+"</div>";
+ return true;
 }
-$("printButton").addEventListener("click",()=>{
- if(!$("set").value){$("status").textContent="印刷するJAを選択してください。";$("set").focus();return;}
- buildPrintTable();window.print();
+$("countPrintButton").addEventListener("click",()=>{
+ if(!buildCountPrintTable())return;
+ document.body.classList.add("count-print-mode");
+ const cleanup=()=>document.body.classList.remove("count-print-mode");
+ window.addEventListener("afterprint",cleanup,{once:true});
+ window.print();
+ setTimeout(cleanup,3000);
 });
+
+$("printButton").addEventListener("click",()=>{buildPrintTable();window.print();});
 $("back").addEventListener("click",()=>location.href="./index.html");
 $("highButton").addEventListener("click",()=>location.href=highMode?"./collection.html":"./collection.html?high=1");
 document.querySelectorAll(".ink-filter").forEach(b=>b.addEventListener("click",()=>{selectedInk=b.dataset.ink;updateInkButtons();render();}));
