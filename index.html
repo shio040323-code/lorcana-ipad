@@ -87,7 +87,8 @@
     white-space: nowrap;
   }
 
-  #collectionLink {
+  #collectionLink,
+  #jaListLink {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -98,6 +99,22 @@
     border-radius: 8px;
     background: #176fc1;
     color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  #jaListLink {
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 6px 16px;
+    border: 1px solid #315f9e;
+    border-radius: 8px;
+    background: #fff;
+    color: #176fc1;
     font-size: 13px;
     font-weight: 700;
     text-decoration: none;
@@ -460,6 +477,7 @@
 
   <div class="collection-row">
     <a id="collectionLink" href="./collection.html">コレクション表</a>
+    <a id="jaListLink" href="./list.html">一覧</a>
   </div>
 
   <div class="sub-title-row">
