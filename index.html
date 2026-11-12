@@ -303,6 +303,90 @@
     font-weight: 800;
   }
 
+
+  /* 弾別未取得枚数：iPadでも見やすい横並び一覧 */
+  #setSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 8px;
+    padding: 7px 8px;
+    background: #f0f3f7;
+    border: 1px solid #dce2e9;
+    border-radius: 9px;
+  }
+
+  #setSummaryTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #344054;
+  }
+
+  #setSummaryTotal {
+    color: #b91c1c;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  #setSummaryList {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .set-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 30px;
+    padding: 4px 9px;
+    border: 1px solid #d7dce3;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .set-summary-row:active,
+  .set-summary-row.selected {
+    border-color: #176fc1;
+    background: #eaf3ff;
+  }
+
+  .set-summary-name {
+    font-weight: 800;
+  }
+
+  .set-summary-count {
+    color: #b91c1c;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .set-summary-count.complete {
+    color: #16803c;
+  }
+
+  @media (min-width: 700px) {
+    #setSummaryList {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 6px;
+    }
+    .set-summary-row {
+      min-height: 32px;
+      font-size: 13px;
+    }
+  }
+
   #empty {
     display: none;
     text-align: center;
@@ -382,6 +466,15 @@
     <div id="count">読み込み中...</div>
   </div>
 
+
+  <section id="setSummary" aria-label="弾別未取得枚数">
+    <div id="setSummaryTitle">
+      <span>弾別 未取得枚数</span>
+      <span id="setSummaryTotal">合計 --枚</span>
+    </div>
+    <div id="setSummaryList"></div>
+  </section>
+
   <select id="setFilter" aria-label="カードセット選択">
     <option value="">すべてのJA</option>
   </select>
@@ -416,6 +509,8 @@ let filteredCards = [];
 const gallery = document.getElementById("gallery");
 const search = document.getElementById("search");
 const setFilter = document.getElementById("setFilter");
+const setSummaryList = document.getElementById("setSummaryList");
+const setSummaryTotal = document.getElementById("setSummaryTotal");
 const count = document.getElementById("count");
 const status = document.getElementById("status");
 const loading = document.getElementById("loading");
@@ -458,7 +553,7 @@ function togglePurchased(card, wrap) {
   }
 
   savePurchasedCards();
-  wrap.classList.toggle("purchased", purchasedCards.has(key));
+  render();
 }
 
 function normalize(value) {
@@ -530,8 +625,60 @@ function buildSetFilter() {
   }
 }
 
+function renderSetSummary() {
+  const setNames = [...new Set(
+    allCards.map(card => getJASet(card.code)).filter(Boolean)
+  )].sort((a, b) => Number(a.slice(2)) - Number(b.slice(2)));
+
+  const missingTotal = allCards.filter(card =>
+    !purchasedCards.has(getCardKey(card))
+  ).length;
+
+  setSummaryTotal.textContent = `合計 ${missingTotal}枚`;
+  setSummaryList.innerHTML = "";
+
+  const fragment = document.createDocumentFragment();
+
+  for (const setName of setNames) {
+    const setCards = allCards.filter(card => getJASet(card.code) === setName);
+    const missingCount = setCards.filter(card =>
+      !purchasedCards.has(getCardKey(card))
+    ).length;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "set-summary-row";
+    if (setFilter.value === setName) button.classList.add("selected");
+
+    const name = document.createElement("span");
+    name.className = "set-summary-name";
+    name.textContent = setName;
+
+    const amount = document.createElement("span");
+    amount.className = "set-summary-count";
+    if (missingCount === 0) {
+      amount.textContent = "COMPLETE";
+      amount.classList.add("complete");
+    } else {
+      amount.textContent = `${missingCount}枚 未取得`;
+    }
+
+    button.append(name, amount);
+    button.addEventListener("click", () => {
+      setFilter.value = setFilter.value === setName ? "" : setName;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    fragment.appendChild(button);
+  }
+
+  setSummaryList.appendChild(fragment);
+}
+
 function render() {
   gallery.innerHTML = "";
+  renderSetSummary();
 
   const keyword = normalize(search.value);
 
