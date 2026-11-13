@@ -98,7 +98,7 @@ body.count-print-mode .count-print-section{height:60mm;margin-bottom:1mm;overflo
 <body class="collection-page">
 <header>
 <h1>ロルカナ コレクション表</h1>
-<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><button id="printButton" type="button">印刷</button><button id="countPrintButton" type="button" class="primary">枚数記入用印刷</button><span id="total" style="align-self:center;font-size:13px;color:#666"></span></div>
+<div class="row"><button id="back">← 未取得カードへ戻る</button><button id="highButton" class="primary">高レア</button><button id="printButton" type="button">印刷</button><button id="countPrintButton" type="button" class="primary">枚数記入用印刷</button><span id="total" style="align-self:center;font-size:13px;color:#cbd5ee"></span><span id="missingTotal" style="align-self:center;font-size:13px;font-weight:800;color:#ffb4b4">未取得：ログイン後に表示</span></div>
 <div class="row">
 <input id="email" type="email" placeholder="Supabase登録メール" autocomplete="username">
 <input id="password" type="password" placeholder="パスワード" autocomplete="current-password">
@@ -253,6 +253,23 @@ function render() {
  });
  visibleCards=filtered;
  $("total").textContent=filtered.length+" / "+cards.length+"枚";
+ // 未取得枚数：高レアリティを除き、Supabaseの通常所持枚数(N)が0のカードを集計
+ if(highMode){
+  $("missingTotal").style.display="none";
+ }else{
+  $("missingTotal").style.display="";
+  if(!user){
+   $("missingTotal").textContent="未取得：ログイン後に表示";
+  }else{
+   const missingCount=cards.filter(c=>{
+    if(HIGH_RARITIES.has(c.rarity)) return false;
+    if(s && ja(c.code)!==s) return false;
+    const owned=counts.get(String(c.code))||{n:0,f:0};
+    return Number(owned.n||0)<1;
+   }).length;
+   $("missingTotal").textContent="未取得："+missingCount+"枚";
+  }
+ }
  const frag=document.createDocumentFragment();
  for(const c of filtered) {
   const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
