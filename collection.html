@@ -16,6 +16,15 @@ h1{font-size:20px;margin:0 0 8px;letter-spacing:.02em} .row{display:flex;gap:6px
 input,button,select{font-size:15px;padding:9px;border:1px solid #4d5878;border-radius:8px;background:#171f36;color:#f5f7ff} input{min-width:0;flex:1} input::placeholder{color:#aeb8d0}
 button{cursor:pointer} button:hover{filter:brightness(1.15)} .primary{background:linear-gradient(135deg,#176fc1,#5735a5);color:#fff;border:1px solid #628ee2;font-weight:800;box-shadow:0 3px 10px #0003}
 #status{font-size:12px;color:#b8c2dc;margin-top:6px;min-height:16px}
+.sync-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px;font-size:11px}
+.sync-tools button{padding:6px 10px;font-size:12px}
+.sync-state{font-weight:900;padding:4px 8px;border-radius:6px;background:#3b4255;color:#e5e7eb}
+.sync-state.syncing{background:#754d0b;color:#ffe4a3}
+.sync-state.synced{background:#14532d;color:#bbf7d0}
+.sync-state.failed{background:#7f1d1d;color:#fecaca}
+.sync-state.offline{background:#374151;color:#e5e7eb}
+#lastSync{color:#b8c2dc}
+#status.status-error{color:#fecaca} #status.status-ok{color:#bbf7d0}
 #resetPasswordPanel{display:none;position:fixed;inset:0;z-index:50;background:#080d1bfa;padding:20px;align-items:center;justify-content:center}#resetPasswordPanel .reset-box{width:min(100%,420px);background:#202943;border:1px solid #596789;border-radius:16px;padding:20px;box-shadow:0 15px 50px #0009}#resetPasswordPanel h2{margin:0 0 12px;font-size:20px}#resetPasswordPanel input{width:100%;margin:7px 0;flex:none}#resetPasswordPanel button{margin-top:8px}
 #filters{display:flex;gap:6px} #search{width:100%;margin-top:6px}
 #inkFilters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
@@ -118,7 +127,12 @@ body.count-print-mode .count-print-section{height:60mm;margin-bottom:1mm;overflo
 <button type="button" class="ink-filter" data-ink="steel">スティール</button>
 </div>
 <input id="search" type="search" placeholder="カード番号・カード名で検索">
-<div id="status">ログインするとPC・iPad間で枚数を共有できます。</div>
+<div class="sync-tools">
+ <button id="syncButton" type="button">今すぐ同期</button>
+ <span id="syncState" class="sync-state">未同期</span>
+ <span id="lastSync">最終同期：--</span>
+</div>
+<div id="status" class="status-idle">ログインするとPC・iPad間で枚数を共有できます。</div>
 </header>
 <div id="cards"></div>
 <div id="printTableWrap" aria-hidden="true"></div>
@@ -234,6 +248,45 @@ async function loadCards() {
  if(highMode) { document.title="ロルカナ 高レア"; document.querySelector("h1").textContent="ロルカナ 高レア"; $("highButton").textContent="通常コレクション表"; $("ownership").style.display="none"; }
  render();
 }
+let syncInProgress = false;
+function setSyncState(kind, message) {
+ const el = $("syncState");
+ if(!el) return;
+ el.className = "sync-state " + kind;
+ el.textContent = message;
+}
+function setStatus(message, kind="idle") {
+ $("status").textContent = message;
+ $("status").className = "status-" + kind;
+}
+function lastSyncKey(uid) { return "lorcana_last_sync_" + uid; }
+function updateLastSync(uid) {
+ const value = localStorage.getItem(lastSyncKey(uid));
+ $("lastSync").textContent = value
+  ? "最終同期：" + new Date(value).toLocaleString("ja-JP")
+  : "最終同期：まだありません";
+}
+function queueKey(uid) { return "lorcana_pending_sync_v1_" + uid; }
+function readPendingQueue(uid) {
+ try { return JSON.parse(localStorage.getItem(queueKey(uid)) || "[]"); }
+ catch(e) { return []; }
+}
+function writePendingQueue(uid, rows) {
+ localStorage.setItem(queueKey(uid), JSON.stringify(rows));
+}
+function updateOnlineState() {
+ if(!navigator.onLine) setSyncState("offline","オフライン");
+ else if(!syncInProgress) setSyncState("idle","待機中");
+}
+window.addEventListener("offline", () => {
+ setSyncState("offline","オフライン");
+ setStatus("オフラインです。入力内容は端末に保存し、接続回復後に同期します。","error");
+});
+window.addEventListener("online", () => {
+ if(user) syncAll().catch(e => setStatus("再接続後の同期失敗："+e.message,"error"));
+ else updateOnlineState();
+});
+
 // キャッシュは端末ごと・ログインユーザーごとに分離して保存する
 function getCountsCacheKey(uid) {
  return "lorcana_collection_counts_v1_" + uid;
@@ -276,15 +329,18 @@ async function loadCounts() {
  if(cached) {
   counts = cached;
   render();
-  $("status").textContent = `端末キャッシュを表示中：${counts.size.toLocaleString()}件（最新データを同期中…）`;
+  setStatus(`端末キャッシュを表示中：${counts.size.toLocaleString()}件（最新データを同期中…）`);
+  updateLastSync(uid);
  } else {
   counts = new Map();
   render();
-  $("status").textContent = "共有データを読み込み中…";
+  setStatus("共有データを読み込み中…");
+  updateLastSync(uid);
  }
- refreshCountsFromSupabase(uid).catch(e => {
+ syncAll().catch(e => {
   if(user?.id === uid) {
-   $("status").textContent = `同期失敗：${e.message}${cached ? "（端末の保存データを表示しています）" : ""}`;
+   setSyncState(navigator.onLine ? "failed" : "offline", navigator.onLine ? "同期失敗" : "オフライン");
+   setStatus(`同期失敗：${e.message}${cached ? "（端末の保存データを表示しています）" : ""}`,"error");
   }
  });
 }
@@ -316,12 +372,50 @@ async function refreshCountsFromSupabase(uid) {
    f:Number(r.foil_count || 0)
   }]));
 
- // 同期中にこの端末で入力した値があれば、取得結果より優先して保持
+ // 未送信のオフライン入力はサーバー取得値より優先して残す
  for(const [key,value] of pendingLocalCounts) fresh.set(key,value);
  counts = fresh;
  saveCountsCache(uid, fresh);
  render();
- $("status").textContent = `Supabase同期完了：${allRows.length.toLocaleString()}件（この端末にキャッシュ保存済み）`;
+}
+
+// 未送信キューをSupabaseへ送信し、その後最新データを再取得
+async function syncAll() {
+ if(!user) { setStatus("同期にはログインが必要です。","error"); return; }
+ if(!navigator.onLine) {
+  setSyncState("offline","オフライン");
+  setStatus("オフラインです。入力内容は端末に保存されています。","error");
+  return;
+ }
+ if(syncInProgress) return;
+ const uid = user.id;
+ syncInProgress = true;
+ setSyncState("syncing","同期中…");
+ setStatus("Supabaseと同期しています…");
+ try {
+  let queue = readPendingQueue(uid);
+  for(const item of queue) {
+   const {error} = await sb.from("lorcana_collection").upsert({
+    user_id:uid, card_code:item.card_code,
+    normal_count:item.normal_count, foil_count:item.foil_count,
+    updated_at:item.updated_at || new Date().toISOString()
+   }, {onConflict:"user_id,card_code"});
+   if(error) throw error;
+   queue = queue.filter(q => norm(q.card_code) !== norm(item.card_code));
+   pendingLocalCounts.delete(norm(item.card_code));
+   writePendingQueue(uid, queue);
+  }
+  await refreshCountsFromSupabase(uid);
+  if(!user || user.id !== uid) return;
+  const stamp = new Date().toISOString();
+  localStorage.setItem(lastSyncKey(uid), stamp);
+  updateLastSync(uid);
+  setSyncState("synced","同期完了");
+  setStatus(`同期完了：${counts.size.toLocaleString()}件`,"ok");
+ } finally {
+  syncInProgress = false;
+  if(!navigator.onLine) setSyncState("offline","オフライン");
+ }
 }
 function render() {
  const host=$("cards");host.innerHTML="";
@@ -409,12 +503,28 @@ async function saveEditedCounts(){
  counts.set(cacheKey,editedValue);render();
  $("status").textContent=code+" を自動保存中…";
  const row={user_id:user.id,card_code:code,normal_count:n,foil_count:f,updated_at:new Date().toISOString()};
+ const uid = user.id;
+ const queue = readPendingQueue(uid).filter(q => norm(q.card_code) !== cacheKey);
+ queue.push(row);
+ writePendingQueue(uid, queue);
+ saveCountsCache(uid, counts);
+ if(!navigator.onLine) {
+  setSyncState("offline","オフライン");
+  setStatus(code+" を端末に保存しました。接続回復後に同期します。","error");
+  return;
+ }
  const {error}=await sb.from("lorcana_collection").upsert(row,{onConflict:"user_id,card_code"});
  if(seq!==saveSequence)return;
- if(error){$("status").textContent="自動保存失敗："+error.message;return;}
+ if(error){
+  setSyncState("failed","未同期データあり");
+  setStatus(code+" は端末に保存済み。Supabase同期待ち："+error.message,"error");
+  return;
+ }
+ const remaining = readPendingQueue(uid).filter(q => norm(q.card_code) !== cacheKey);
+ writePendingQueue(uid, remaining);
  if(pendingLocalCounts.get(cacheKey) === editedValue) pendingLocalCounts.delete(cacheKey);
- if(user) saveCountsCache(user.id, counts);
- $("status").textContent=code+" を自動保存しました。";
+ setSyncState("synced","同期完了");
+ setStatus(code+" をSupabaseに保存しました。","ok");
 }
 function changedCount(){updateInputUI();if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(saveEditedCounts,350);}
 function changeCount(which,delta){if(which==="n")editN=Math.max(0,Math.min(999,editN+delta));else editF=Math.max(0,Math.min(999,editF+delta));activeCount=which;changedCount();}
@@ -536,7 +646,13 @@ sb.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_IN" && session?.user){user=session.user;authUI();}
 });
 checkPasswordRecoveryUrl();
-$("logout").addEventListener("click",async()=>{await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();$("status").textContent="ログアウトしました。";});
+$("syncButton").addEventListener("click",()=>syncAll().catch(e=>{
+ setSyncState("failed","同期失敗"); setStatus("同期失敗："+e.message,"error");
+}));
+$("logout").addEventListener("click",async()=>{
+ await sb.auth.signOut();user=null;counts=new Map();authUI();render();closeInput();
+ setSyncState("idle","未ログイン");setStatus("ログアウトしました。");
+});
 function escapePrint(value){return String(value??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));}
 function buildPrintTable(){
  const wrap=$("printTableWrap");
