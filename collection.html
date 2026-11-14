@@ -153,7 +153,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yb9oh1nKNgb6uFeN_pPf2Q_kQksgoK6
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" }
 });
-let user = null, cards = [], counts = new Map(), visibleCards = [];
+let user = null, cards = [], counts = new Map(), visibleCards = [], pendingLocalCounts = new Map();
 const HIGH_RARITIES = new Set(["エピック", "エンチャンテッド", "アイコニック"]);
 const highMode = new URLSearchParams(location.search).get("high") === "1";
 if (highMode) document.body.classList.add("high-only");
@@ -234,18 +234,100 @@ async function loadCards() {
  if(highMode) { document.title="ロルカナ 高レア"; document.querySelector("h1").textContent="ロルカナ 高レア"; $("highButton").textContent="通常コレクション表"; $("ownership").style.display="none"; }
  render();
 }
+// キャッシュは端末ごと・ログインユーザーごとに分離して保存する
+function getCountsCacheKey(uid) {
+ return "lorcana_collection_counts_v1_" + uid;
+}
+function saveCountsCache(uid, map) {
+ try {
+  const rows = [...map.entries()].map(([code,v]) => ({
+   card_code:code, normal_count:v.n, foil_count:v.f
+  }));
+  localStorage.setItem(getCountsCacheKey(uid), JSON.stringify({
+   savedAt:new Date().toISOString(), rows
+  }));
+ } catch(e) {
+  console.warn("コレクションキャッシュ保存失敗:", e);
+ }
+}
+function loadCountsCache(uid) {
+ try {
+  const raw = localStorage.getItem(getCountsCacheKey(uid));
+  if(!raw) return null;
+  const parsed = JSON.parse(raw);
+  if(!Array.isArray(parsed.rows)) return null;
+  return new Map(parsed.rows
+   .filter(r => r.card_code != null)
+   .map(r => [norm(r.card_code), {
+    n:Number(r.normal_count || 0),
+    f:Number(r.foil_count || 0)
+   }]));
+ } catch(e) {
+  console.warn("コレクションキャッシュ読込失敗:", e);
+  return null;
+ }
+}
+
+// キャッシュを先に表示し、その後Supabaseの最新データで更新する
 async function loadCounts() {
  if(!user) return;
- const {data,error}=await sb.from("lorcana_collection").select("card_code,normal_count,foil_count").eq("user_id",user.id);
- if(error) throw error;
- counts=new Map((data||[]).map(r=>[String(r.card_code),{n:Number(r.normal_count||0),f:Number(r.foil_count||0)}]));
+ const uid = user.id;
+ const cached = loadCountsCache(uid);
+ if(cached) {
+  counts = cached;
+  render();
+  $("status").textContent = `端末キャッシュを表示中：${counts.size.toLocaleString()}件（最新データを同期中…）`;
+ } else {
+  counts = new Map();
+  render();
+  $("status").textContent = "共有データを読み込み中…";
+ }
+ refreshCountsFromSupabase(uid).catch(e => {
+  if(user?.id === uid) {
+   $("status").textContent = `同期失敗：${e.message}${cached ? "（端末の保存データを表示しています）" : ""}`;
+  }
+ });
+}
+
+// 500件ずつ全件取得。取得完了後にまとめて反映する
+async function refreshCountsFromSupabase(uid) {
+ const PAGE_SIZE = 500;
+ const allRows = [];
+ for(let from = 0; ; from += PAGE_SIZE) {
+  const {data,error}=await sb
+   .from("lorcana_collection")
+   .select("card_code,normal_count,foil_count")
+   .eq("user_id",uid)
+   .order("card_code",{ascending:true})
+   .range(from,from + PAGE_SIZE - 1);
+  if(error) throw error;
+  const rows = data || [];
+  allRows.push(...rows);
+  if(rows.length < PAGE_SIZE) break;
+ }
+
+ // 別ユーザーへ切り替わっていた場合、前ユーザーの結果を反映しない
+ if(!user || user.id !== uid) return;
+
+ const fresh = new Map(allRows
+  .filter(r => r.card_code != null)
+  .map(r => [norm(r.card_code), {
+   n:Number(r.normal_count || 0),
+   f:Number(r.foil_count || 0)
+  }]));
+
+ // 同期中にこの端末で入力した値があれば、取得結果より優先して保持
+ for(const [key,value] of pendingLocalCounts) fresh.set(key,value);
+ counts = fresh;
+ saveCountsCache(uid, fresh);
  render();
+ $("status").textContent = `Supabase同期完了：${allRows.length.toLocaleString()}件（この端末にキャッシュ保存済み）`;
 }
 function render() {
  const host=$("cards");host.innerHTML="";
  const kw=norm($("search").value), s=$("set").value, own=$("ownership").value;
  const filtered=cards.filter(c=>{
-  const code=String(c.code||""), v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const code=String(c.code||""), v=counts.get(norm(code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const isHigh = HIGH_RARITIES.has(c.rarity);
   const inks = getCardInks(c);
   return (highMode ? isHigh : !isHigh) && (selectedInk === "all" || (selectedInk === "dual" ? inks.length >= 2 : inks.includes(selectedInk))) && (!s||ja(code)===s) && (!kw||norm(code+" "+(c.name||"")+" "+(c.version||"")).includes(kw)) &&
@@ -264,7 +346,7 @@ function render() {
    const missingCount=cards.filter(c=>{
     if(HIGH_RARITIES.has(c.rarity)) return false;
     if(s && ja(c.code)!==s) return false;
-    const owned=counts.get(String(c.code))||{n:0,f:0};
+    const owned=counts.get(norm(String(c.code)))||{n:0,f:0};
     return Number(owned.n||0)<1;
    }).length;
    $("missingTotal").textContent="未取得："+missingCount+"枚";
@@ -272,7 +354,7 @@ function render() {
  }
  const frag=document.createDocumentFragment();
  for(const c of filtered) {
-  const code=String(c.code||""); const v=counts.get(code)||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const code=String(c.code||""); const v=counts.get(norm(code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const card=document.createElement("article");card.className="card "+(v.n>=1?"owned":"not-owned");
   const inks=getCardInks(c); const inkBg=inkBackground(inks); if(inkBg){card.style.background=inkBg;card.style.backgroundImage=inkBg;card.style.color="#172033";card.style.borderColor="#222";}
   const line=document.createElement("div");line.className="code-line";
@@ -297,7 +379,7 @@ function updateInputUI(){
 }
 function openInput(c){
  editingCard=c;
- if(!user){$("status").textContent="入力画面は開けます。PC・iPad共有の自動保存にはログインが必要です。";}const v=counts.get(c.code)||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
+ if(!user){$("status").textContent="入力画面は開けます。PC・iPad共有の自動保存にはログインが必要です。";}const v=counts.get(norm(c.code))||{n:0,f:0};editN=v.n;editF=v.f;activeCount="n";
  $("inputCardName").textContent=c.code+"　"+c.name+(c.version?" / "+c.version:"");updateInputUI();$("inputScreen").style.display="block";document.body.style.overflow="hidden";updateNavButtons();
 }
 function closeInput(){
@@ -321,12 +403,17 @@ async function moveCard(delta){
 async function saveEditedCounts(){
  if(!user||!editingCard)return;
  const code=editingCard.code,n=editN,f=editF,seq=++saveSequence;
- counts.set(code,{n,f});render();
+ const cacheKey = norm(code);
+ const editedValue = {n,f};
+ pendingLocalCounts.set(cacheKey, editedValue);
+ counts.set(cacheKey,editedValue);render();
  $("status").textContent=code+" を自動保存中…";
  const row={user_id:user.id,card_code:code,normal_count:n,foil_count:f,updated_at:new Date().toISOString()};
  const {error}=await sb.from("lorcana_collection").upsert(row,{onConflict:"user_id,card_code"});
  if(seq!==saveSequence)return;
  if(error){$("status").textContent="自動保存失敗："+error.message;return;}
+ if(pendingLocalCounts.get(cacheKey) === editedValue) pendingLocalCounts.delete(cacheKey);
+ if(user) saveCountsCache(user.id, counts);
  $("status").textContent=code+" を自動保存しました。";
 }
 function changedCount(){updateInputUI();if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(saveEditedCounts,350);}
@@ -397,7 +484,7 @@ $("login").addEventListener("click",async()=>{
  const {data,error}=await sb.auth.signInWithPassword({email,password});
  if(error) {$("status").textContent="ログイン失敗："+error.message;return;}
  user=data.user;authUI();render();
- try {await loadCounts();$("status").textContent="ログイン・共有データ読込完了";}
+ try {await loadCounts();} 
  catch(e) {$("status").textContent="データ読込失敗："+e.message;}
 });
 $("forgotPassword").addEventListener("click",async()=>{
@@ -456,7 +543,7 @@ function buildPrintTable(){
  const rarityClass={"レア":"rare","スーパーレア":"super","レジェンダリー":"legendary","エピック":"epic","エンチャンテッド":"enchanted","アイコニック":"iconic"};
  const list=visibleCards.slice(0,210);
  const cells=list.map(c=>{
-  const inks=getCardInks(c),v=counts.get(String(c.code))||{n:Number(c.normal||0),f:Number(c.foil||0)};
+  const inks=getCardInks(c),v=counts.get(norm(String(c.code)))||{n:Number(c.normal||0),f:Number(c.foil||0)};
   const code=escapePrint(c.code);
   const first=inks[0]&&INK_COLORS[inks[0]]?INK_COLORS[inks[0]].hex:"#fff";
   const second=inks[1]&&INK_COLORS[inks[1]]?INK_COLORS[inks[1]].hex:first;
