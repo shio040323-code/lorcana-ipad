@@ -233,7 +233,7 @@ async function loadCards() {
  const source = Array.isArray(d) ? d : (Array.isArray(d.cards) ? d.cards : []);
  if (!source.length) throw new Error("cardMaster.json にカードデータがありません。");
  // カードマスタのカード番号・カード名をそのまま利用（画像は読み込みません）
- cards = source.filter(c => c && c.code).map(c => ({
+ cards = source.filter(c => c && c.code && String(c.rarity || "").trim() !== "プロモーションカード").map(c => ({
    code: String(c.code).trim(),
    name: String(c.name || ""),
    version: String(c.version || ""),
