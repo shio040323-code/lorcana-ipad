@@ -129,6 +129,9 @@ body.count-print-mode .count-print-section{height:60mm;margin-bottom:1mm;overflo
 <input id="search" type="search" placeholder="カード番号・カード名で検索">
 <div class="sync-tools">
  <button id="syncButton" type="button">今すぐ同期</button>
+ <button id="backupButton" type="button">枚数バックアップ</button>
+ <button id="restoreButton" type="button">バックアップ復元</button>
+ <input id="restoreFile" type="file" accept=".json,application/json" style="display:none">
  <span id="syncState" class="sync-state">未同期</span>
  <span id="lastSync">最終同期：--</span>
 </div>
@@ -417,6 +420,150 @@ async function syncAll() {
   if(!navigator.onLine) setSyncState("offline","オフライン");
  }
 }
+
+// コレクション枚数バックアップ：Supabaseの自分のデータを全件取得
+async function fetchAllCollectionRows(uid) {
+ const PAGE_SIZE = 500;
+ const allRows = [];
+ for(let from=0; ; from+=PAGE_SIZE) {
+  const {data,error}=await sb.from("lorcana_collection")
+   .select("card_code,normal_count,foil_count,updated_at")
+   .eq("user_id",uid)
+   .order("card_code",{ascending:true})
+   .range(from,from+PAGE_SIZE-1);
+  if(error) throw error;
+  const rows=data||[];
+  allRows.push(...rows);
+  if(rows.length<PAGE_SIZE) break;
+ }
+ return allRows;
+}
+function downloadCollectionBackup(rows, uid, label="lorcana-collection-backup") {
+ const payload={
+  format:"lorcana-collection-backup",
+  version:1,
+  exportedAt:new Date().toISOString(),
+  userId:uid,
+  table:"lorcana_collection",
+  count:rows.length,
+  rows:rows.map(r=>({
+   card_code:String(r.card_code),
+   normal_count:Math.max(0,Number(r.normal_count)||0),
+   foil_count:Math.max(0,Number(r.foil_count)||0),
+   ...(r.updated_at?{updated_at:r.updated_at}:{})
+  }))
+ };
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;
+ a.download=`${label}-${new Date().toISOString().replace(/[:.]/g,"-")}.json`;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ return payload;
+}
+async function createCollectionBackup(label="lorcana-collection-backup") {
+ if(!user) throw new Error("バックアップにはログインが必要です。");
+ if(!navigator.onLine) throw new Error("最新のSupabaseデータを取得するため、インターネット接続が必要です。");
+ const uid=user.id;
+ const rows=await fetchAllCollectionRows(uid);
+ // 端末に残っている未送信データもバックアップへ含める
+ const merged=new Map(rows.map(r=>[norm(r.card_code),r]));
+ for(const item of readPendingQueue(uid)) {
+  merged.set(norm(item.card_code),{
+   card_code:item.card_code,
+   normal_count:item.normal_count,
+   foil_count:item.foil_count,
+   updated_at:item.updated_at||new Date().toISOString()
+  });
+ }
+ const result=[...merged.values()].sort((a,b)=>String(a.card_code).localeCompare(String(b.card_code),"ja",{numeric:true}));
+ return downloadCollectionBackup(result,uid,label);
+}
+$("backupButton").addEventListener("click",async()=>{
+ const button=$("backupButton");
+ if(!user){setStatus("バックアップにはログインが必要です。","error");return;}
+ button.disabled=true;
+ try{
+  setStatus("Supabaseから枚数データを取得しています…");
+  const backup=await createCollectionBackup();
+  setStatus(`バックアップ完了：${backup.count.toLocaleString()}件をJSON保存しました。`,"ok");
+ }catch(e){setStatus("バックアップ失敗："+e.message,"error");}
+ finally{button.disabled=false;}
+});
+$("restoreButton").addEventListener("click",()=>{
+ if(!user){setStatus("復元にはログインが必要です。","error");return;}
+ $("restoreFile").click();
+});
+$("restoreFile").addEventListener("change",async e=>{
+ const file=e.target.files?.[0];
+ e.target.value="";
+ if(!file)return;
+ if(!user){setStatus("ログイン状態を確認できません。","error");return;}
+ try{
+  const backup=JSON.parse(await file.text());
+  if(!backup||backup.format!=="lorcana-collection-backup"||backup.version!==1||!Array.isArray(backup.rows))
+   throw new Error("対応していないバックアップ形式です。");
+  if(backup.userId && backup.userId!==user.id)
+   throw new Error("別のユーザーのバックアップです。元のユーザーでログインしてください。");
+  const rows=backup.rows;
+  if(!rows.length) throw new Error("バックアップに枚数データがありません。");
+  const normalized=[];
+  const seen=new Set();
+  for(const r of rows){
+   const code=String(r.card_code||"").trim();
+   if(!code) throw new Error("カード番号が空のデータがあります。");
+   const key=norm(code);
+   if(seen.has(key)) throw new Error("同じカード番号が重複しています："+code);
+   seen.add(key);
+   const n=Number(r.normal_count),f=Number(r.foil_count);
+   if(!Number.isInteger(n)||!Number.isInteger(f)||n<0||f<0||n>999||f>999)
+    throw new Error("枚数が不正なデータがあります："+code);
+   normalized.push({
+    user_id:user.id,card_code:code,normal_count:n,foil_count:f,
+    updated_at:r.updated_at||new Date().toISOString()
+   });
+  }
+  const date=backup.exportedAt?new Date(backup.exportedAt).toLocaleString("ja-JP"):"日時不明";
+  const ok=confirm(
+   `バックアップを復元しますか？\n\n`+
+   `作成日時：${date}\n対象データ：${normalized.length}件\n\n`+
+   `復元前に現在のSupabaseデータを自動バックアップします。\n`+
+   `同じカード番号の枚数は上書きされます。\nバックアップに含まれないカードの既存データは削除しません。`
+  );
+  if(!ok)return;
+  if(!navigator.onLine) throw new Error("復元にはインターネット接続が必要です。");
+  const restoreButton=$("restoreButton");
+  restoreButton.disabled=true;
+  try{
+   setStatus("復元前の現在データをバックアップしています…");
+   const before=await createCollectionBackup("lorcana-collection-before-restore");
+   setStatus(`復元中…（復元前バックアップ：${before.count}件）`);
+   const BATCH=200;
+   for(let i=0;i<normalized.length;i+=BATCH){
+    const batch=normalized.slice(i,i+BATCH);
+    const {error}=await sb.from("lorcana_collection").upsert(batch,{onConflict:"user_id,card_code"});
+    if(error) throw error;
+    setStatus(`復元中… ${Math.min(i+BATCH,normalized.length).toLocaleString()} / ${normalized.length.toLocaleString()}件`);
+   }
+   // 古い未送信キューが復元値を上書きしないよう、復元したカード分を除去
+   const restoredKeys=new Set(normalized.map(r=>norm(r.card_code)));
+   const queue=readPendingQueue(user.id).filter(q=>!restoredKeys.has(norm(q.card_code)));
+   writePendingQueue(user.id,queue);
+   for(const key of restoredKeys) pendingLocalCounts.delete(key);
+   await refreshCountsFromSupabase(user.id);
+   const stamp=new Date().toISOString();
+   localStorage.setItem(lastSyncKey(user.id),stamp);
+   updateLastSync(user.id);
+   setSyncState("synced","同期完了");
+   setStatus(`復元完了：${normalized.length.toLocaleString()}件。復元前のデータもJSON保存しました。`,"ok");
+  }finally{restoreButton.disabled=false;}
+ }catch(err){
+  setSyncState("failed","復元失敗");
+  setStatus("復元失敗："+(err.message||String(err)),"error");
+ }
+});
+
 function render() {
  const host=$("cards");host.innerHTML="";
  const kw=norm($("search").value), s=$("set").value, own=$("ownership").value;
